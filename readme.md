@@ -1,3 +1,7 @@
+> **This is the `spot` branch: SPOT (Simplified Pinpoint Odometry Tracker).**
+> SPOT is Phil's Simplified Odometry rebuilt for the goBILDA Pinpoint, in Java (mecanum and StarterBot tank drive) and as custom Blocks for Blocks-only teams.
+> Everything new is in the [`spot/`](spot/) folder. Start with [`spot/README.md`](spot/README.md). Phil's original files below are unchanged.
+
 ## Phil's Simplified FTC Odometry Tutorial.  
 
 This tutorial presents an alternative approach to FTC odometry, one that combines the ability to accurately measure how the robot is moving, with simple straight-line motions.

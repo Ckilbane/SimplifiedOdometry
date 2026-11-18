@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPOT for Blocks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: shop-floor procedure sheet, sibling of the Strafer Drivetrain Lab.
+   Left rail = phase list + "your robot" card. Values from the card show as amber tape in every block picture. */
+:root {
+  --paper: #F3F5F7;
+  --surface: #FFFFFF;
+  --ink: #14202B;
+  --ink-2: #4B5967;
+  --ink-3: #7A8794;
+  --line: #D6DDE4;
+  --line-strong: #B8C3CD;
+  --accent: #1D5C96;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E4EEF8;
+  --tape: #F7DA74;
+  --tape-soft: #FDF3CF;
+  --tape-ink: #4E3A00;
+  --pass: #1C7444;
+  --pass-soft: #E3F3E9;
+  --warn: #9A5600;
+  --warn-soft: #FBEEDB;
+  --fail: #AE2A20;
+  --code-bg: #101B26;
+  --code-ink: #D9E2EA;
+  --canvas: #EEF1F4;
+  --canvas-dot: #D3DAE1;
+
+  /* Block hues match the colors set in SpotBlocks.java */
+  --b-setup: hsl(30 62% 46%);
+  --b-move: hsl(210 55% 44%);
+  --b-tune: hsl(280 38% 48%);
+  --b-check: hsl(140 42% 34%);
+  --b-op: hsl(42 70% 40%);
+  --b-motor: hsl(225 38% 52%);
+  --b-tele: hsl(170 40% 34%);
+  --b-loop: hsl(120 30% 38%);
+  --b-note: #6E7C89;
+
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --t-xs: 0.75rem; --t-sm: 0.875rem; --t-md: 1rem; --t-lg: 1.25rem; --t-xl: 1.75rem; --t-2xl: 2.25rem;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0D141B; --surface: #141D26; --ink: #E3E9EF; --ink-2: #A3B0BC; --ink-3: #74828F;
+    --line: #233140; --line-strong: #344555; --accent: #79B2E8; --accent-ink: #0B1520; --accent-soft: #172B3E;
+    --tape: #E6C35A; --tape-soft: #3A3014; --tape-ink: #FFE7A0;
+    --pass: #63C98F; --pass-soft: #14291E; --warn: #E6A659; --warn-soft: #2E2312; --fail: #F0796E;
+    --code-bg: #0A1219; --canvas: #101921; --canvas-dot: #1E2A35;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0D141B; --surface: #141D26; --ink: #E3E9EF; --ink-2: #A3B0BC; --ink-3: #74828F;
+  --line: #233140; --line-strong: #344555; --accent: #79B2E8; --accent-ink: #0B1520; --accent-soft: #172B3E;
+  --tape: #E6C35A; --tape-soft: #3A3014; --tape-ink: #FFE7A0;
+  --pass: #63C98F; --pass-soft: #14291E; --warn: #E6A659; --warn-soft: #2E2312; --fail: #F0796E;
+  --code-bg: #0A1219; --canvas: #101921; --canvas-dot: #1E2A35;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--f-body); font-size: var(--t-md); line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: 0.005em; }
+p { margin: 0; }
+code, .mono { font-family: var(--f-mono); font-size: 0.9em; }
+:not(pre) > code { background: var(--accent-soft); color: var(--ink); padding: 0.05em 0.35em; border-radius: 4px; }
+a { color: var(--accent); }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tape { background: var(--tape); color: var(--tape-ink); border-radius: 3px; padding: 0 0.25em; }
+
+/* Masthead */
+.mast { background: var(--surface); border-bottom: 1px solid var(--line); padding: 20px 16px 18px; }
+.mast-in { max-width: 1240px; margin: 0 auto; display: flex; gap: 12px 32px; align-items: end; justify-content: space-between; flex-wrap: wrap; }
+.eyebrow { font-family: var(--f-mono); font-size: var(--t-xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.mast h1 { font-size: var(--t-2xl); font-weight: 700; line-height: 1.1; margin-top: 4px; }
+.mast .lede { color: var(--ink-2); max-width: 62ch; margin-top: 8px; }
+.spec { display: flex; gap: 6px; flex-wrap: wrap; }
+.spec span { font-family: var(--f-mono); font-size: var(--t-xs); border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px 10px; color: var(--ink-2); background: var(--paper); }
+
+/* Shell */
+.shell { max-width: 1240px; margin: 0 auto; padding: 24px 16px 64px; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 900px) { .shell { grid-template-columns: minmax(0, 1fr); } .rail { position: static !important; } }
+.rail { position: sticky; top: 16px; display: grid; gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.rail nav ol { list-style: none; margin: 0; padding: 6px; display: grid; gap: 2px; counter-reset: ph; }
+.rail nav a { display: grid; grid-template-columns: 26px 1fr; gap: 6px; align-items: baseline; padding: 6px 8px; border-radius: 4px; text-decoration: none; color: var(--ink-2); font-size: var(--t-sm); }
+.rail nav a:hover { background: var(--accent-soft); color: var(--ink); }
+.rail nav .n { font-family: var(--f-mono); font-size: var(--t-xs); color: var(--ink-3); }
+
+/* Your robot card */
+.robot { padding: 14px 14px 16px; display: grid; gap: 12px; }
+.robot h2 { font-size: var(--t-lg); }
+.robot .hint { font-size: var(--t-xs); color: var(--ink-3); }
+.fieldset { display: grid; gap: 6px; }
+.fieldset > .lbl { font-size: var(--t-xs); font-family: var(--f-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); }
+.toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tg { display: flex; align-items: center; gap: 8px; font-size: var(--t-sm); padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); cursor: pointer; }
+.tg input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
+.tg:has(input:checked) { border-color: var(--tape); background: var(--tape-soft); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line-strong); border-radius: 4px; overflow: hidden; }
+.seg button { border: 0; background: var(--paper); padding: 6px 8px; font-size: var(--t-sm); }
+.seg button + button { border-left: 1px solid var(--line-strong); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.nums { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.nums label { display: grid; gap: 3px; font-size: var(--t-xs); color: var(--ink-2); }
+.nums input { font: inherit; font-family: var(--f-mono); font-size: var(--t-sm); padding: 6px 8px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--paper); color: var(--ink); width: 100%; font-variant-numeric: tabular-nums; }
+.reset { justify-self: start; background: none; border: 0; color: var(--accent); font-size: var(--t-xs); padding: 0; text-decoration: underline; }
+
+/* Phases */
+main { display: grid; gap: 28px; min-width: 0; }
+.phase { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px 22px 24px; display: grid; gap: 16px; scroll-margin-top: 16px; min-width: 0; }
+@media (max-width: 520px) { .phase { padding: 18px 14px 20px; } }
+.ph-head { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; align-items: baseline; }
+.ph-num { font-family: var(--f-mono); font-size: var(--t-sm); font-weight: 600; color: var(--accent-ink); background: var(--accent); border-radius: 4px; padding: 2px 8px; }
+.ph-head h2 { font-size: var(--t-xl); line-height: 1.15; }
+.ph-head .why { grid-column: 2; color: var(--ink-2); max-width: 66ch; }
+.prose { display: grid; gap: 10px; max-width: 70ch; }
+p.prose { display: block; }
+.steps { margin: 0; padding-left: 1.4em; display: grid; gap: 8px; max-width: 70ch; }
+.steps li::marker { font-family: var(--f-mono); color: var(--ink-3); font-size: var(--t-sm); }
+.callout { border-left: 4px solid var(--warn); background: var(--warn-soft); padding: 10px 14px; border-radius: 0 4px 4px 0; max-width: 72ch; font-size: var(--t-sm); }
+.callout.pass { border-color: var(--pass); background: var(--pass-soft); }
+.callout strong { font-weight: 600; }
+h3 { font-size: var(--t-lg); }
+
+table { border-collapse: collapse; width: 100%; font-size: var(--t-sm); }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-mono); font-size: var(--t-xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); font-weight: 500; background: var(--paper); }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+
+/* Block canvas */
+.canvas { background-color: var(--canvas); background-image: radial-gradient(var(--canvas-dot) 1px, transparent 1px); background-size: 16px 16px; border: 1px solid var(--line); border-radius: var(--r); padding: 16px; overflow-x: auto; }
+.canvas-cap { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: var(--t-xs); font-family: var(--f-mono); color: var(--ink-3); margin-bottom: 10px; }
+.stack { display: grid; gap: 3px; justify-items: start; min-width: max-content; }
+.blk { display: inline-flex; flex-wrap: nowrap; align-items: center; gap: 6px; color: #fff; border-radius: 5px; padding: 5px 9px; font-size: 13.5px; line-height: 1.3; box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.18); white-space: nowrap; }
+.blk .ttl { font-weight: 600; }
+.blk .sub { font-family: var(--f-mono); font-size: 11px; opacity: 0.8; }
+.blk.my { flex-direction: column; align-items: flex-start; gap: 4px; padding: 6px 10px 8px; }
+.blk.my .top { display: flex; gap: 8px; align-items: baseline; }
+.blk.my .args { display: grid; grid-template-columns: auto auto; gap: 3px 8px; align-items: center; padding-left: 10px; }
+.blk.my .args .al { font-size: 12.5px; opacity: 0.92; text-align: right; }
+.sock { display: inline-block; background: #fff; color: #1b2733; font-family: var(--f-mono); font-size: 12.5px; border-radius: 10px; padding: 1px 9px; min-width: 2.2em; text-align: center; }
+.sock.bool { border-radius: 4px; background: hsl(210 25% 92%); }
+.sock.txt::before { content: "\201C"; opacity: 0.5; } .sock.txt::after { content: "\201D"; opacity: 0.5; }
+.sock.t { background: var(--tape); color: #4E3A00; }
+.c-setup { background: var(--b-setup); } .c-move { background: var(--b-move); } .c-tune { background: var(--b-tune); }
+.c-check { background: var(--b-check); } .c-op { background: var(--b-op); } .c-motor { background: var(--b-motor); }
+.c-tele { background: var(--b-tele); } .c-loop { background: var(--b-loop); } .c-note { background: var(--b-note); font-style: italic; font-weight: 400; }
+.cblk { display: grid; justify-items: start; }
+.cblk > .blk { border-radius: 5px 5px 0 0; }
+.cblk > .inner { border-left: 14px solid var(--loopc); padding: 3px 0 3px 6px; display: grid; gap: 3px; justify-items: start; }
+.cblk > .foot { height: 12px; width: 70px; background: var(--loopc); border-radius: 0 0 5px 5px; }
+.legend { display: flex; gap: 8px 14px; flex-wrap: wrap; font-size: var(--t-xs); color: var(--ink-2); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
+
+/* Code */
+.codebox { border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); }
+.codebar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--code-bg); color: var(--code-ink); padding: 8px 12px; font-family: var(--f-mono); font-size: var(--t-sm); }
+.btn { border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); border-radius: 4px; padding: 6px 14px; font-weight: 600; font-size: var(--t-sm); }
+.btn.ok { background: var(--pass); border-color: var(--pass); color: #fff; }
+pre.code { margin: 0; background: var(--code-bg); color: var(--code-ink); font-family: var(--f-mono); font-size: 12.5px; line-height: 1.5; padding: 12px 14px; overflow: auto; max-height: 360px; }
+details > summary { cursor: pointer; color: var(--accent); font-size: var(--t-sm); padding: 8px 12px; background: var(--surface); }
+
+/* Pod diagram */
+.podfig { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 20px; align-items: center; }
+@media (max-width: 640px) { .podfig { grid-template-columns: minmax(0, 1fr); } }
+.podfig svg { width: 100%; height: auto; display: block; }
+.podfig svg text { font-family: var(--f-mono); font-size: 11px; fill: var(--ink-2); }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="mast-in">
+    <div>
+      <div class="eyebrow">SPOT · Simplified Pinpoint Odometry Tracker</div>
+      <h1>SPOT for Blocks</h1>
+      <p class="lede">SPOT is Phil Malone's Simplified Odometry, rebuilt for the goBILDA Pinpoint. This guide sets up a mecanum robot with a Pinpoint so your team can write autonomous programs with blocks like <strong>drive 24 inches</strong> and <strong>turn to 90°</strong>. You paste one Java file once. Everything after that happens in Blocks.</p>
+    </div>
+    <div class="spec" aria-label="Requirements">
+      <span>SDK 10.3 or newer</span><span>Control Hub</span><span>Mecanum drive</span><span>Pinpoint + 2 pods</span>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="rail">
+    <nav class="card" aria-label="Phases">
+      <ol>
+        <li><a href="#check-parts"><span class="n">0</span><span>Before you start</span></a></li>
+        <li><a href="#configure"><span class="n">1</span><span>Configure the hardware</span></a></li>
+        <li><a href="#install"><span class="n">2</span><span>Install the custom blocks</span></a></li>
+        <li><a href="#motors"><span class="n">3</span><span>Motor Direction Check</span></a></li>
+        <li><a href="#pods"><span class="n">4</span><span>Measure the pods</span></a></li>
+        <li><a href="#pinpoint"><span class="n">5</span><span>Pinpoint Check</span></a></li>
+        <li><a href="#first-auto"><span class="n">6</span><span>First autonomous</span></a></li>
+        <li><a href="#tuning"><span class="n">7</span><span>Tuning and fixes</span></a></li>
+        <li><a href="#reference"><span class="n">R</span><span>Block reference</span></a></li>
+      </ol>
+    </nav>
+
+    <section class="card robot" aria-labelledby="robot-h">
+      <div>
+        <h2 id="robot-h">Your robot</h2>
+        <p class="hint">Fill this in as you go. Your answers show up as <span class="tape">yellow tape</span> in every block picture below. Saved in this browser only.</p>
+      </div>
+      <div class="fieldset">
+        <span class="lbl">Reversed motors (Phase 3)</span>
+        <div class="toggles">
+          <label class="tg" for="m-lf"><input type="checkbox" id="m-lf"> Left front</label>
+          <label class="tg" for="m-rf"><input type="checkbox" id="m-rf"> Right front</label>
+          <label class="tg" for="m-lb"><input type="checkbox" id="m-lb"> Left back</label>
+          <label class="tg" for="m-rb"><input type="checkbox" id="m-rb"> Right back</label>
+        </div>
+      </div>
+      <div class="fieldset">
+        <span class="lbl" id="pod-lbl">Pod type (Phase 4)</span>
+        <div class="seg" role="group" aria-labelledby="pod-lbl">
+          <button type="button" id="pod-4bar" data-pod="4-bar">4-bar</button>
+          <button type="button" id="pod-swing" data-pod="swingarm">Swingarm</button>
+        </div>
+      </div>
+      <div class="fieldset">
+        <span class="lbl">Pod offsets in mm (Phase 4)</span>
+        <div class="nums">
+          <label for="off-x">X pod, left of center<input type="number" id="off-x" step="1" inputmode="decimal"></label>
+          <label for="off-y">Y pod, forward of center<input type="number" id="off-y" step="1" inputmode="decimal"></label>
+        </div>
+      </div>
+      <div class="fieldset">
+        <span class="lbl">Reversed pods (Phase 5)</span>
+        <div class="toggles">
+          <label class="tg" for="p-x"><input type="checkbox" id="p-x"> X pod</label>
+          <label class="tg" for="p-y"><input type="checkbox" id="p-y"> Y pod</label>
+        </div>
+      </div>
+      <button type="button" class="reset" id="reset">Reset to Strafer defaults</button>
+    </section>
+  </aside>
+
+  <main>
+    <!-- 0 -->
+    <section class="phase" id="check-parts">
+      <div class="ph-head">
+        <span class="ph-num">0</span><h2>Before you start</h2>
+        <p class="why">Ten minutes of checking here saves an afternoon of guessing later.</p>
+      </div>
+      <ol class="steps">
+        <li><strong>Check the SDK version.</strong> On the Driver Station, open the menu, then <em>About</em>. The Robot Controller version must be <strong>10.3 or newer</strong>, because that is when the Pinpoint driver was built in. This season's release is 12.0. If it's older, update the Control Hub with the REV Hardware Client first.</li>
+        <li><strong>Plug in all four drive motor encoder cables.</strong> The custom blocks run the drive motors in encoder mode. A motor with no encoder cable can run at full speed when you ask for a little.</li>
+        <li><strong>Mount the Pinpoint flat</strong> and plug it into a free I2C port on the Control Hub (port 1, 2 or 3). Port 0 already has the hub's built-in IMU.</li>
+        <li><strong>Plug the pods into the Pinpoint.</strong> The pod that rolls when the robot drives forward goes in <strong>X</strong>. The pod that rolls when the robot strafes goes in <strong>Y</strong>.</li>
+        <li><strong>Have a laptop</strong> that can join the robot's Wi-Fi, plus a tape measure in millimeters.</li>
+      </ol>
+    </section>
+
+    <!-- 1 -->
+    <section class="phase" id="configure">
+      <div class="ph-head">
+        <span class="ph-num">1</span><h2>Configure the hardware</h2>
+        <p class="why">The custom blocks look for devices by name. The names in your configuration have to match these exactly, including underscores.</p>
+      </div>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Device</th><th>Configure as</th><th>Name</th></tr></thead>
+          <tbody>
+            <tr><td>Left front drive motor</td><td>Motor (goBILDA 5202/3/4 series)</td><td><code>drive_leftfront_motor</code></td></tr>
+            <tr><td>Right front drive motor</td><td>Motor (goBILDA 5202/3/4 series)</td><td><code>drive_rightfront_motor</code></td></tr>
+            <tr><td>Left back drive motor</td><td>Motor (goBILDA 5202/3/4 series)</td><td><code>drive_leftback_motor</code></td></tr>
+            <tr><td>Right back drive motor</td><td>Motor (goBILDA 5202/3/4 series)</td><td><code>drive_rightback_motor</code></td></tr>
+            <tr><td>Pinpoint</td><td>I2C device: goBILDA Pinpoint Odometry Computer, on the bus it's plugged into</td><td><code>odom_pinpoint_sensor</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout">
+        <strong>Already have Blocks programs that use other names?</strong> You don't have to rename anything. Add the <em>set device names</em> block at the top of each odometry program and type your names into it. See the <a href="#reference">block reference</a>.
+      </div>
+      <p class="prose">After saving the configuration, make sure it's the <strong>active</strong> one. The Driver Station shows the active configuration name in the top right.</p>
+    </section>
+
+    <!-- 2 -->
+    <section class="phase" id="install">
+      <div class="ph-head">
+        <span class="ph-num">2</span><h2>Install the custom blocks</h2>
+        <p class="why">This is the only step that touches Java, and it's a copy and paste. Do it once per Control Hub.</p>
+      </div>
+      <ol class="steps">
+        <li>Connect the laptop to the robot's Wi-Fi network and open <code>http://192.168.43.1:8080</code> in a browser.</li>
+        <li>Click the <strong>OnBot Java</strong> tab.</li>
+        <li>Click the <strong>+</strong> (new file) button. Name the file <code>SpotBlocks.java</code>, letter for letter, and make sure it goes in the <code>teamcode</code> folder. Click OK.</li>
+        <li>Click <strong>Copy file</strong> below. In the new file, select everything that's already there, then paste over it.</li>
+        <li>Click the <strong>Build Everything</strong> button (the wrench). Wait for <em>Build SUCCESSFUL</em>.</li>
+        <li>Click the <strong>Blocks</strong> tab and open any OpMode. In the list of block categories on the left, open <strong>Java Classes</strong>, then <strong>SpotBlocks</strong>. You should see the orange, blue, purple and green blocks pictured in this guide.</li>
+      </ol>
+      <div class="codebox">
+        <div class="codebar"><span>SpotBlocks.java · <span id="loc"></span> lines</span><button type="button" class="btn" id="copy-java">Copy file</button></div>
+        <details><summary>Show the code</summary><pre class="code" id="java-view"></pre></details>
+      </div>
+      <div class="callout">
+        <strong>If the build fails:</strong> OnBot Java builds every file together, so one broken file stops all of them. Read the first error. If it names a different file, fix or delete that file. If it says <code>SpotBlocks</code> is duplicated, there are two copies; delete one.
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="phase" id="motors">
+      <div class="ph-head">
+        <span class="ph-num">3</span><h2>Motor Direction Check</h2>
+        <p class="why">Mecanum only works when all four wheels agree on which way is forward. This program spins one wheel at a time so you can see which ones are backwards.</p>
+      </div>
+      <p class="prose">Build this in Blocks as a new OpMode named <strong>Motor Direction Check</strong>. It uses only regular blocks, nothing custom. Put the robot on a box so the wheels spin freely.</p>
+      <div class="canvas">
+        <div class="canvas-cap"><span>Motor Direction Check · regular blocks only</span><span>repeat for all four motors</span></div>
+        <div class="stack" data-prog="motor"></div>
+      </div>
+      <ol class="steps">
+        <li>Run it. Each wheel spins for 2 seconds, in order: left front, right front, left back, right back. The Driver Station says which one is spinning.</li>
+        <li>For each wheel, ask: <strong>would this push the robot forward?</strong> The top of the wheel should roll toward the front of the robot.</li>
+        <li>Any wheel that spins backwards gets checked as <strong>Reversed</strong> in the <em>Your robot</em> card. Don't change any wires.</li>
+      </ol>
+      <div class="callout pass">On a goBILDA Strafer, both <strong>left</strong> wheels usually come out reversed. That's why those two start checked.</div>
+    </section>
+
+    <!-- 4 -->
+    <section class="phase" id="pods">
+      <div class="ph-head">
+        <span class="ph-num">4</span><h2>Measure the pods</h2>
+        <p class="why">The Pinpoint needs to know where each pod sits so that turning in place doesn't look like driving.</p>
+      </div>
+      <div class="podfig">
+        <svg id="pod-svg" viewBox="0 0 300 300" role="img" aria-labelledby="pod-svg-t"><title id="pod-svg-t">Top view of the robot showing where the two pods sit relative to the center</title></svg>
+        <div class="prose">
+          <p><strong>Pod type.</strong> goBILDA makes two: <strong>4-bar</strong> pods have a parallel linkage, and <strong>swingarm</strong> pods pivot on a single arm. Pick yours in the card.</p>
+          <p><strong>Find the center</strong> of the robot: halfway between the left and right wheels, and halfway between the front and back wheels. Mark it with tape.</p>
+          <p><strong>X offset:</strong> sideways distance from the center to the <strong>X (forward) pod</strong>. Left of center is positive, right is negative.</p>
+          <p><strong>Y offset:</strong> front-to-back distance from the center to the <strong>Y (sideways) pod</strong>. Forward of center is positive, behind is negative.</p>
+          <p>Measure to the middle of each pod wheel, in millimeters. Within 5 mm is plenty.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="phase" id="pinpoint">
+      <div class="ph-head">
+        <span class="ph-num">5</span><h2>Pinpoint Check</h2>
+        <p class="why">Before the robot drives itself, prove that the Pinpoint reads the right numbers in the right direction.</p>
+      </div>
+      <p class="prose">Make a new OpMode named <strong>Pinpoint Check</strong>. The orange and green blocks are in <em>Java Classes → SpotBlocks</em>. Tape values come from the card.</p>
+      <div class="canvas">
+        <div class="canvas-cap"><span>Pinpoint Check</span><span>robot sitting still at INIT</span></div>
+        <div class="stack" data-prog="pinpoint"></div>
+      </div>
+      <ol class="steps">
+        <li>Set the robot on the floor, press INIT, wait a second, then press Start. Don't touch the robot during INIT, because the Pinpoint is calibrating its gyro.</li>
+        <li><strong>Push the robot straight forward</strong> by hand along a tape measure, 24 inches. <strong>X</strong> should read close to +24. If it counts down instead, check <em>X pod</em> reversed in the card, update the block, and run it again.</li>
+        <li><strong>Push it 24 inches to the left.</strong> <strong>Y</strong> should read close to +24. If it counts down, check <em>Y pod</em> reversed.</li>
+        <li><strong>Turn it left</strong> (counter-clockwise from above) a quarter turn. <strong>Heading</strong> should read close to +90.</li>
+        <li><strong>Spin it in place</strong> a few times and come back to where it started. X and Y should stay within an inch or two of where they were. If they wander a lot, recheck the pod offsets.</li>
+      </ol>
+      <div class="callout"><strong>Distance way off?</strong> If X reads about 15 or 38 after a 24-inch push, the pod type is probably wrong. If the status line doesn't say <code>READY</code>, check the I2C cable and that the configuration has the Pinpoint on the right bus.</div>
+    </section>
+
+    <!-- 6 -->
+    <section class="phase" id="first-auto">
+      <div class="ph-head">
+        <span class="ph-num">6</span><h2>First autonomous</h2>
+        <p class="why">Two short programs. The square shows driving and turning. The box shows what makes mecanum special: sliding sideways without turning.</p>
+      </div>
+      <div class="prose">
+        <p>Every odometry program starts with the same <strong>setup stack</strong>: the orange blocks with your robot's values, then <em>init robot</em>, then <em>waitForStart</em>, then <em>reset heading</em>. Build the setup stack once, then duplicate the OpMode for each new program.</p>
+        <p>Each blue block finishes its move before the next block starts. You don't need sleep blocks between them.</p>
+      </div>
+      <div class="two">
+        <div class="canvas">
+          <div class="canvas-cap"><span>Auto Square</span><span>24″ square, returns facing start</span></div>
+          <div class="stack" data-prog="square"></div>
+        </div>
+        <div class="canvas">
+          <div class="canvas-cap"><span>Auto Strafe Box</span><span>never turns</span></div>
+          <div class="stack" data-prog="box"></div>
+        </div>
+      </div>
+      <div class="callout pass"><strong>Turn to faces a direction.</strong> It doesn't turn by an amount. 0 is the way the robot faced at <em>reset heading</em>, 90 is a quarter turn left, -90 is a quarter turn right, and 180 is facing backward. Two <em>turn to 90</em> blocks in a row only turn once.</div>
+      <p class="prose">To score, put your team's own mechanism blocks (arm, intake, servo) between the blue blocks. For example: drive 30, then set the claw servo to open, then sleep 500, then drive -10.</p>
+    </section>
+
+    <!-- 7 -->
+    <section class="phase" id="tuning">
+      <div class="ph-head">
+        <span class="ph-num">7</span><h2>Tuning and fixes</h2>
+        <p class="why">The default numbers work on most goBILDA mecanum robots. Only tune if the robot misbehaves, and change one number at a time.</p>
+      </div>
+      <div class="two">
+        <div class="canvas">
+          <div class="canvas-cap"><span>Tuning additions</span><span>after init robot</span></div>
+          <div class="stack" data-prog="tune"></div>
+        </div>
+        <div class="prose">
+          <p><strong>Gain</strong> is how hard the robot pushes for each inch (or degree) it still has to go. Defaults: drive 0.03, strafe 0.03, turn 0.018.</p>
+          <p><strong>Power</strong> in each blue block is the top speed. Start at 0.5. Faster runs are less precise.</p>
+          <p><strong>Hold</strong> is how long the robot has to stay on target before the block finishes. 0.25 seconds is a good start. Use 0 when you want speed and don't mind being off by a little.</p>
+        </div>
+      </div>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>What you see</th><th>Try this</th></tr></thead>
+          <tbody>
+            <tr><td>Robot stops short, or creeps slowly the last inch</td><td>Raise that move's gain a little (drive 0.03 → 0.035).</td></tr>
+            <tr><td>Robot overshoots and rocks back and forth at the end</td><td>Lower that move's gain (0.03 → 0.025), or lower the power.</td></tr>
+            <tr><td>A block never finishes and the robot just sits there humming</td><td>It's stuck within a fraction of an inch. Raise the gain a bit, or lower the hold time. Press Stop to get out.</td></tr>
+            <tr><td>Turns end a degree or two off</td><td>Raise turn gain (0.018 → 0.022). Make sure the battery is charged.</td></tr>
+            <tr><td>Robot spins wildly or drives the wrong way on the first move</td><td>Go back to Phase 3 and Phase 5. A reversed motor or pod is the usual cause.</td></tr>
+            <tr><td>Strafe drifts forward or back</td><td>Check the pod offsets, and the mecanum rollers. Rollers should make an X when seen from above.</td></tr>
+            <tr><td>Blocks shows a warning that a block is obsolete</td><td>The Java file changed. Drag in a fresh copy of that block from Java Classes → SpotBlocks and delete the old one.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Error messages</h3>
+      <p class="prose">The custom blocks stop the program with a plain message on the Driver Station when something is set up wrong.</p>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Message starts with</th><th>Fix</th></tr></thead>
+          <tbody>
+            <tr><td>Put the "init robot" block in your program…</td><td>Add <em>init robot</em> after the orange set blocks and before <em>waitForStart</em>.</td></tr>
+            <tr><td>Move the "set …" block ABOVE "init robot"…</td><td>Drag that orange block up so it runs before <em>init robot</em>.</td></tr>
+            <tr><td>Pod type must be 4-bar or swingarm…</td><td>Fix the text in <em>set odometry pods</em>.</td></tr>
+            <tr><td>The "drive" block needs a power between 0 and 1…</td><td>Power is always positive. To go backward, make the inches negative. To turn right, make the heading negative.</td></tr>
+            <tr><td>Unable to find a hardware device with the name…</td><td>A configuration name doesn't match Phase 1, or the wrong configuration is active.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Reference -->
+    <section class="phase" id="reference">
+      <div class="ph-head">
+        <span class="ph-num">R</span><h2>Block reference</h2>
+        <p class="why">Every custom block in <em>Java Classes → SpotBlocks</em>. Click the blue <strong>?</strong> on any block in the editor to read the same notes.</p>
+      </div>
+      <div class="legend"><span><i style="background:var(--b-setup)"></i>Setup: before init robot</span><span><i style="background:var(--b-move)"></i>Motion: after waitForStart</span><span><i style="background:var(--b-tune)"></i>Tuning</span><span><i style="background:var(--b-check)"></i>Checking</span></div>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Block</th><th>Inputs</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><strong>set device names</strong></td><td>4 motor names, Pinpoint name</td><td>Optional. Only if your configuration doesn't use the Phase 1 names.</td></tr>
+            <tr><td><strong>set motor directions</strong></td><td>true/false for each motor</td><td>true means that motor is reversed. From Phase 3.</td></tr>
+            <tr><td><strong>set odometry pods</strong></td><td>"4-bar" or "swingarm", X offset, Y offset (mm)</td><td>From Phase 4.</td></tr>
+            <tr><td><strong>set pod directions</strong></td><td>true/false for X and Y pods</td><td>From Phase 5.</td></tr>
+            <tr><td><strong>init robot</strong></td><td>show telemetry</td><td>Connects everything and calibrates the gyro. Robot must be still.</td></tr>
+            <tr><td><strong>reset heading</strong></td><td>none</td><td>The way the robot faces now becomes heading 0. Use right after waitForStart.</td></tr>
+            <tr><td><strong>drive</strong></td><td>inches, power, hold</td><td>Forward (+) or backward (−), holding heading.</td></tr>
+            <tr><td><strong>strafe</strong></td><td>inches, power, hold</td><td>Left (+) or right (−), holding heading.</td></tr>
+            <tr><td><strong>turn to</strong></td><td>heading, power, hold</td><td>Face a heading. Left is +, right is −.</td></tr>
+            <tr><td><strong>stop robot</strong></td><td>none</td><td>All drive motors to 0.</td></tr>
+            <tr><td><strong>heading</strong></td><td>none (returns a number)</td><td>Current heading in degrees, for telemetry or if blocks.</td></tr>
+            <tr><td><strong>set gains</strong></td><td>drive, strafe, turn</td><td>Tuning. Works before or after init robot.</td></tr>
+            <tr><td><strong>show Pinpoint on Driver Station</strong></td><td>none</td><td>Shows X, Y, heading and status. Use in a loop.</td></tr>
+            <tr><td><strong>show drive telemetry</strong></td><td>true/false</td><td>Shows distances and wheel powers while moving.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="prose" style="font-size:var(--t-sm);color:var(--ink-3)">Block pictures in this guide are drawn to match the editor's layout. Colors and spacing in the real Blocks editor may look a little different depending on the SDK version. The motion code is Phil Malone's Simplified Odometry, adapted for the goBILDA Pinpoint.</p>
+    </section>
+  </main>
+</div>
+
+<script>
+var JAVA_SRC = "/* SpotBlocks: SPOT (Simplified Pinpoint Odometry Tracker) custom Blocks (myBlocks)\n * for a mecanum robot with a goBILDA Pinpoint.\n *\n * WHAT THIS FILE IS\n *   Mentors and students never need to edit this file. Paste it into OnBot Java once,\n *   click \"Build Everything\", and a new set of blocks appears in the Blocks editor under\n *   Java Classes > SpotBlocks. Every setting (motor directions, pod type, pod\n *   offsets, gains) is a block, so all tuning happens in Blocks.\n *\n * HOW A BLOCKS PROGRAM USES IT\n *   Before waitForStart:\n *     1. set motor directions      (from the Motor Direction Check)\n *     2. set odometry pods         (pod type and offsets)\n *     3. set pod directions        (from the Pinpoint Check)\n *     4. init robot                (robot must be sitting still)\n *   After waitForStart:\n *     5. reset heading\n *     6. drive / strafe / turn to  (each one finishes before the next block runs)\n *\n * WHERE IT COMES FROM\n *   The motion code is Phil Malone's SimplifiedOdometryRobot (2023), converted to the\n *   goBILDA Pinpoint. drive() and strafe() measure distance along the robot's own axes,\n *   using the heading the robot had when each move started, so moves stay correct\n *   after a turn.\n *\n * Hardware names (ftcmap standard). Your Control Hub configuration must match these\n * exactly, or use the \"set device names\" block to match your configuration instead:\n *   drive_leftfront_motor, drive_rightfront_motor,\n *   drive_leftback_motor,  drive_rightback_motor,\n *   odom_pinpoint_sensor   (I2C device type: goBILDA Pinpoint Odometry Computer)\n */\n\npackage org.firstinspires.ftc.teamcode;\n\nimport com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;\nimport com.qualcomm.hardware.lynx.LynxModule;\nimport com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;\nimport com.qualcomm.robotcore.hardware.DcMotor;\nimport com.qualcomm.robotcore.util.ElapsedTime;\nimport com.qualcomm.robotcore.util.Range;\n\nimport org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion;\nimport org.firstinspires.ftc.robotcore.external.ExportToBlocks;\nimport org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;\nimport org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;\nimport org.firstinspires.ftc.robotcore.external.navigation.Pose2D;\nimport org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;\n\nimport java.util.List;\n\npublic class SpotBlocks extends BlocksOpModeCompanion {\n\n    // ===================================================================================\n    //  Block colors (hue numbers). Setup blocks are orange, motion blocks are blue,\n    //  tuning is purple, and checking blocks are green.\n    // ===================================================================================\n    private static final int SETUP_COLOR  = 30;\n    private static final int MOVE_COLOR   = 210;\n    private static final int TUNE_COLOR   = 280;\n    private static final int CHECK_COLOR  = 140;\n\n    // Settings collected by the setup blocks. \"init robot\" uses them, then puts them\n    // back to the defaults, so every program has to say what its robot needs.\n    private static Settings pending = new Settings();\n    private static LinearOpMode pendingOwner = null;\n\n    // The robot built by \"init robot\", and the program that built it.\n    private static Robot robot = null;\n    private static LinearOpMode robotOwner = null;\n\n    // ===================================================================================\n    //  SETUP BLOCKS (use these before \"init robot\")\n    // ===================================================================================\n\n    @ExportToBlocks(\n        heading = \"set device names\",\n        color = SETUP_COLOR,\n        comment = \"Optional. Only needed if your configuration does not use the standard names \" +\n                  \"(drive_leftfront_motor, drive_rightfront_motor, drive_leftback_motor, \" +\n                  \"drive_rightback_motor, odom_pinpoint_sensor). Use before init robot.\",\n        tooltip = \"Match the names in your Control Hub configuration\",\n        parameterLabels = {\"Left front motor\", \"Right front motor\", \"Left back motor\",\n                           \"Right back motor\", \"Pinpoint\"}\n    )\n    public static void setDeviceNames(String leftFront, String rightFront,\n                                      String leftBack, String rightBack, String pinpoint) {\n        requireBeforeInit(\"set device names\");\n        Settings s = settings();\n        s.leftFrontName  = leftFront.trim();\n        s.rightFrontName = rightFront.trim();\n        s.leftBackName   = leftBack.trim();\n        s.rightBackName  = rightBack.trim();\n        s.pinpointName   = pinpoint.trim();\n    }\n\n    @ExportToBlocks(\n        heading = \"set motor directions\",\n        color = SETUP_COLOR,\n        comment = \"Use the answers from the Motor Direction Check. true = that motor is reversed. \" +\n                  \"A goBILDA Strafer usually needs both LEFT motors reversed. Use before init robot.\",\n        tooltip = \"Which drive motors are reversed\",\n        parameterLabels = {\"Left front reversed\", \"Right front reversed\",\n                           \"Left back reversed\", \"Right back reversed\"}\n    )\n    public static void setMotorDirections(boolean leftFrontReversed, boolean rightFrontReversed,\n                                          boolean leftBackReversed, boolean rightBackReversed) {\n        requireBeforeInit(\"set motor directions\");\n        Settings s = settings();\n        s.leftFrontReversed  = leftFrontReversed;\n        s.rightFrontReversed = rightFrontReversed;\n        s.leftBackReversed   = leftBackReversed;\n        s.rightBackReversed  = rightBackReversed;\n    }\n\n    @ExportToBlocks(\n        heading = \"set odometry pods\",\n        color = SETUP_COLOR,\n        comment = \"Pod type is the text 4-bar or swingarm. Offsets are in millimeters from the \" +\n                  \"center of the robot: X offset = how far LEFT of center the forward pod is \" +\n                  \"(right of center is negative). Y offset = how far FORWARD of center the \" +\n                  \"sideways pod is (behind center is negative). Use before init robot.\",\n        tooltip = \"Pod type and where the pods are mounted\",\n        parameterLabels = {\"Pod type\", \"X pod offset (mm)\", \"Y pod offset (mm)\"}\n    )\n    public static void setOdometryPods(String podType, double xOffsetMM, double yOffsetMM) {\n        requireBeforeInit(\"set odometry pods\");\n        Settings s = settings();\n        s.swingarmPods = parsePodType(podType);\n        s.xOffsetMM    = xOffsetMM;\n        s.yOffsetMM    = yOffsetMM;\n    }\n\n    @ExportToBlocks(\n        heading = \"set pod directions\",\n        color = SETUP_COLOR,\n        comment = \"Use the answers from the Pinpoint Check. X must go UP when the robot is pushed \" +\n                  \"forward. Y must go UP when the robot is pushed left. Set true for any that \" +\n                  \"went the wrong way. Use before init robot.\",\n        tooltip = \"Which odometry pods count backwards\",\n        parameterLabels = {\"X pod reversed\", \"Y pod reversed\"}\n    )\n    public static void setPodDirections(boolean xReversed, boolean yReversed) {\n        requireBeforeInit(\"set pod directions\");\n        Settings s = settings();\n        s.xPodReversed = xReversed;\n        s.yPodReversed = yReversed;\n    }\n\n    @ExportToBlocks(\n        heading = \"init robot\",\n        color = SETUP_COLOR,\n        comment = \"Connects to the motors and Pinpoint and sends the Pinpoint its settings. \" +\n                  \"Put it after the set blocks and before waitForStart. The robot MUST be \" +\n                  \"sitting still, because the Pinpoint calibrates its gyro here.\",\n        tooltip = \"Set up the drive motors and Pinpoint\",\n        parameterLabels = {\"Show telemetry\"}\n    )\n    public static void initRobot(boolean showTelemetry) {\n        robot = new Robot(linearOpMode, settings(), showTelemetry);\n        robotOwner = linearOpMode;\n        pending = new Settings();\n        pendingOwner = null;\n\n        // Give the Pinpoint a moment to finish its gyro calibration.\n        linearOpMode.sleep(300);\n    }\n\n    // ===================================================================================\n    //  MOTION BLOCKS (use these after waitForStart)\n    //  Each block finishes its move before the next block runs.\n    // ===================================================================================\n\n    @ExportToBlocks(\n        heading = \"reset heading\",\n        color = MOVE_COLOR,\n        comment = \"Makes the way the robot is facing right now count as heading 0. \" +\n                  \"Put it right after waitForStart. Turn to blocks measure from here.\",\n        tooltip = \"Current direction becomes heading 0\"\n    )\n    public static void resetHeading() {\n        robot().resetHeading();\n    }\n\n    @ExportToBlocks(\n        heading = \"drive\",\n        color = MOVE_COLOR,\n        comment = \"Drive forward (positive inches) or backward (negative inches) while holding \" +\n                  \"the current heading. Power is the top speed, 0 to 1. Hold is how many seconds \" +\n                  \"the robot must stay on target before the block finishes (0.25 is a good start).\",\n        tooltip = \"Drive forward or backward a set distance\",\n        parameterLabels = {\"Inches\", \"Power\", \"Hold (sec)\"}\n    )\n    public static void drive(double inches, double power, double holdSeconds) {\n        checkPower(power, \"drive\");\n        robot().drive(inches, power, holdSeconds);\n    }\n\n    @ExportToBlocks(\n        heading = \"strafe\",\n        color = MOVE_COLOR,\n        comment = \"Slide LEFT (positive inches) or RIGHT (negative inches) while holding the \" +\n                  \"current heading. Power is the top speed, 0 to 1. Hold is how many seconds \" +\n                  \"the robot must stay on target before the block finishes.\",\n        tooltip = \"Slide sideways a set distance\",\n        parameterLabels = {\"Inches\", \"Power\", \"Hold (sec)\"}\n    )\n    public static void strafe(double inches, double power, double holdSeconds) {\n        checkPower(power, \"strafe\");\n        robot().strafe(inches, power, holdSeconds);\n    }\n\n    @ExportToBlocks(\n        heading = \"turn to\",\n        color = MOVE_COLOR,\n        comment = \"Turn in place to face a heading in degrees. 0 = the way the robot faced at \" +\n                  \"reset heading. Positive = LEFT (counter-clockwise), negative = RIGHT. This is \" +\n                  \"where to face, not how far to turn: turn to 90 twice only turns once.\",\n        tooltip = \"Turn to face a heading\",\n        parameterLabels = {\"Heading (deg)\", \"Power\", \"Hold (sec)\"}\n    )\n    public static void turnTo(double headingDegrees, double power, double holdSeconds) {\n        checkPower(power, \"turn to\");\n        robot().turnTo(headingDegrees, power, holdSeconds);\n    }\n\n    @ExportToBlocks(\n        heading = \"stop robot\",\n        color = MOVE_COLOR,\n        comment = \"Sets all four drive motors to 0 power.\",\n        tooltip = \"Stop the drive motors\"\n    )\n    public static void stopRobot() {\n        robot().stopRobot();\n    }\n\n    @ExportToBlocks(\n        heading = \"heading\",\n        color = MOVE_COLOR,\n        comment = \"The robot's heading in degrees, from the last time the Pinpoint was read. \" +\n                  \"Positive = turned left.\",\n        tooltip = \"Robot heading in degrees\"\n    )\n    public static double heading() {\n        return robot().heading;\n    }\n\n    // ===================================================================================\n    //  TUNING BLOCKS\n    // ===================================================================================\n\n    @ExportToBlocks(\n        heading = \"set gains\",\n        color = TUNE_COLOR,\n        comment = \"How hard the robot pushes toward its target. Defaults: drive 0.03, \" +\n                  \"strafe 0.03, turn 0.018. If the robot stops short or creeps at the end, \" +\n                  \"raise the gain a little. If it overshoots or wobbles, lower it. Change one \" +\n                  \"number at a time. Works before or after init robot.\",\n        tooltip = \"Tune how hard each move pushes\",\n        parameterLabels = {\"Drive gain\", \"Strafe gain\", \"Turn gain\"}\n    )\n    public static void setGains(double driveGain, double strafeGain, double turnGain) {\n        Settings s = settings();\n        s.driveGain  = driveGain;\n        s.strafeGain = strafeGain;\n        s.turnGain   = turnGain;\n\n        if (robotIsReady()) {\n            robot.driveController.gain  = driveGain;\n            robot.strafeController.gain = strafeGain;\n            robot.yawController.gain    = turnGain;\n        }\n    }\n\n    // ===================================================================================\n    //  CHECKING BLOCKS\n    // ===================================================================================\n\n    @ExportToBlocks(\n        heading = \"show Pinpoint on Driver Station\",\n        color = CHECK_COLOR,\n        comment = \"Reads the Pinpoint and shows X, Y and heading on the Driver Station. Put it \" +\n                  \"inside a repeat while opModeIsActive loop. Push the robot by hand: X should \" +\n                  \"go up going forward, Y should go up going left, heading should go up turning left.\",\n        tooltip = \"Show Pinpoint position on the Driver Station\"\n    )\n    public static void showPinpoint() {\n        robot().showPinpoint();\n    }\n\n    @ExportToBlocks(\n        heading = \"show drive telemetry\",\n        color = CHECK_COLOR,\n        comment = \"true = show distance, heading and wheel powers on the Driver Station while \" +\n                  \"the robot moves. Handy while tuning. Works only after init robot.\",\n        tooltip = \"Turn movement telemetry on or off\",\n        parameterLabels = {\"Show\"}\n    )\n    public static void showDriveTelemetry(boolean show) {\n        robot().showTelemetry = show;\n    }\n\n    // ===================================================================================\n    //  Helpers (not blocks)\n    // ===================================================================================\n\n    // True when \"init robot\" already ran in the program that is running right now.\n    private static boolean robotIsReady() {\n        return robot != null && robotOwner == linearOpMode;\n    }\n\n    private static Robot robot() {\n        if (!robotIsReady()) {\n            throw new IllegalStateException(\n                \"Put the \\\"init robot\\\" block in your program before any drive, strafe, \" +\n                \"turn or show block.\");\n        }\n        return robot;\n    }\n\n    // Settings for the program running now. Leftovers from an earlier program are thrown out.\n    private static Settings settings() {\n        if (pendingOwner != linearOpMode) {\n            pending = new Settings();\n            pendingOwner = linearOpMode;\n        }\n        return pending;\n    }\n\n    // A power of 0 would leave the robot waiting forever, so catch it with a clear message.\n    private static void checkPower(double power, String blockName) {\n        if (power <= 0 || power > 1) {\n            throw new IllegalArgumentException(\n                \"The \\\"\" + blockName + \"\\\" block needs a power between 0 and 1 (it got \" + power + \"). \" +\n                \"Use negative INCHES or HEADING to go the other way, not negative power.\");\n        }\n    }\n\n    private static void requireBeforeInit(String blockName) {\n        if (robotIsReady()) {\n            throw new IllegalStateException(\n                \"Move the \\\"\" + blockName + \"\\\" block ABOVE \\\"init robot\\\". \" +\n                \"Settings only take effect when init robot runs.\");\n        }\n    }\n\n    private static boolean parsePodType(String podType) {\n        String t = podType.toLowerCase().replaceAll(\"[^a-z0-9]\", \"\");\n        if (t.contains(\"swing\")) return true;\n        if (t.contains(\"4bar\") || t.contains(\"fourbar\") || t.equals(\"4\")) return false;\n        throw new IllegalArgumentException(\n            \"Pod type must be 4-bar or swingarm. The set odometry pods block got: \\\"\" + podType + \"\\\"\");\n    }\n\n    // ===================================================================================\n    //  Settings: everything the setup blocks can change, with default values.\n    //  Defaults are the goBILDA Strafer with 4-bar pods mounted at the center.\n    // ===================================================================================\n    static class Settings {\n        String  leftFrontName  = \"drive_leftfront_motor\";\n        String  rightFrontName = \"drive_rightfront_motor\";\n        String  leftBackName   = \"drive_leftback_motor\";\n        String  rightBackName  = \"drive_rightback_motor\";\n        String  pinpointName   = \"odom_pinpoint_sensor\";\n\n        boolean leftFrontReversed  = true;\n        boolean rightFrontReversed = false;\n        boolean leftBackReversed   = true;\n        boolean rightBackReversed  = false;\n\n        boolean swingarmPods = false;\n        double  xOffsetMM    = 0.0;\n        double  yOffsetMM    = 0.0;\n        boolean xPodReversed = false;\n        boolean yPodReversed = false;\n\n        double  driveGain  = 0.03;\n        double  strafeGain = 0.03;\n        double  turnGain   = 0.018;\n    }\n\n    // ===================================================================================\n    //  Robot: Phil Malone's SimplifiedOdometryRobot, Pinpoint version.\n    // ===================================================================================\n    static class Robot {\n\n        // Motion controller settings.\n        //   ACCEL     how fast power may ramp up, per second\n        //   TOLERANCE how close counts as \"there\" (inches or degrees)\n        //   DEADBAND  error small enough to stop pushing at all\n        //   MAX_AUTO  top power for this axis\n        // Gains come from Settings so the \"set gains\" block can change them.\n        private static final double DRIVE_ACCEL     = 2.0;\n        private static final double DRIVE_TOLERANCE = 0.5;\n        private static final double DRIVE_DEADBAND  = 0.2;\n        private static final double DRIVE_MAX_AUTO  = 0.6;\n\n        private static final double STRAFE_ACCEL     = 1.5;\n        private static final double STRAFE_TOLERANCE = 0.5;\n        private static final double STRAFE_DEADBAND  = 0.2;\n        private static final double STRAFE_MAX_AUTO  = 0.6;\n\n        private static final double YAW_ACCEL     = 3.0;\n        private static final double YAW_TOLERANCE = 1.0;\n        private static final double YAW_DEADBAND  = 0.25;\n        private static final double YAW_MAX_AUTO  = 0.6;\n\n        double driveDistance  = 0; // along the robot's forward axis this move (+ = forward), inches\n        double strafeDistance = 0; // along the robot's left axis this move (+ = left), inches\n        double heading        = 0; // degrees (+ = counter-clockwise)\n        boolean showTelemetry;\n\n        final ProportionalControl driveController;\n        final ProportionalControl strafeController;\n        final ProportionalControl yawController;\n\n        private final DcMotor leftFrontDrive;\n        private final DcMotor rightFrontDrive;\n        private final DcMotor leftBackDrive;\n        private final DcMotor rightBackDrive;\n        private final GoBildaPinpointDriver odo;\n\n        private final LinearOpMode myOpMode;\n        private final ElapsedTime holdTimer = new ElapsedTime();\n\n        private double turnRate            = 0;\n        private double moveStartHeadingRad = 0;  // heading when the current drive/strafe began\n\n        Robot(LinearOpMode opMode, Settings s, boolean showTelemetry) {\n            myOpMode = opMode;\n            this.showTelemetry = showTelemetry;\n\n            driveController  = new ProportionalControl(s.driveGain,  DRIVE_ACCEL,  DRIVE_MAX_AUTO,  DRIVE_TOLERANCE,  DRIVE_DEADBAND,  false);\n            strafeController = new ProportionalControl(s.strafeGain, STRAFE_ACCEL, STRAFE_MAX_AUTO, STRAFE_TOLERANCE, STRAFE_DEADBAND, false);\n            yawController    = new ProportionalControl(s.turnGain,   YAW_ACCEL,    YAW_MAX_AUTO,    YAW_TOLERANCE,    YAW_DEADBAND,    true);\n\n            leftFrontDrive  = setupDriveMotor(s.leftFrontName,  s.leftFrontReversed);\n            rightFrontDrive = setupDriveMotor(s.rightFrontName, s.rightFrontReversed);\n            leftBackDrive   = setupDriveMotor(s.leftBackName,   s.leftBackReversed);\n            rightBackDrive  = setupDriveMotor(s.rightBackName,  s.rightBackReversed);\n\n            odo = myOpMode.hardwareMap.get(GoBildaPinpointDriver.class, s.pinpointName);\n            odo.setOffsets(s.xOffsetMM, s.yOffsetMM, DistanceUnit.MM);\n            odo.setEncoderResolution(s.swingarmPods\n                    ? GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_SWINGARM_POD\n                    : GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);\n\n            // X must count up when the robot moves forward, Y when it moves left.\n            odo.setEncoderDirections(\n                    s.xPodReversed ? GoBildaPinpointDriver.EncoderDirection.REVERSED\n                                   : GoBildaPinpointDriver.EncoderDirection.FORWARD,\n                    s.yPodReversed ? GoBildaPinpointDriver.EncoderDirection.REVERSED\n                                   : GoBildaPinpointDriver.EncoderDirection.FORWARD\n            );\n\n            // Zero the position and recalibrate the Pinpoint's IMU.\n            // The robot MUST be sitting still for this.\n            odo.resetPosAndIMU();\n            moveStartHeadingRad = 0;\n\n            List<LynxModule> allHubs = myOpMode.hardwareMap.getAll(LynxModule.class);\n            for (LynxModule module : allHubs) {\n                module.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);\n            }\n        }\n\n        private DcMotor setupDriveMotor(String deviceName, boolean reversed) {\n            DcMotor aMotor = myOpMode.hardwareMap.get(DcMotor.class, deviceName);\n            aMotor.setDirection(reversed ? DcMotor.Direction.REVERSE : DcMotor.Direction.FORWARD);\n            aMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);\n            aMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);\n            aMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);\n            return aMotor;\n        }\n\n        /**\n         * Read the Pinpoint and update driveDistance, strafeDistance and heading.\n         * Always returns true so it can sit inside a while() condition.\n         */\n        boolean readSensors() {\n            odo.update();\n\n            // The Pinpoint tracks position on the FIELD. drive() and strafe() need distance\n            // along the robot's OWN axes, so turn the field position into \"how far forward\"\n            // and \"how far left\" relative to the heading the robot had when this move started.\n            double fieldX = odo.getPosX(DistanceUnit.INCH);\n            double fieldY = odo.getPosY(DistanceUnit.INCH);\n            double cosH   = Math.cos(moveStartHeadingRad);\n            double sinH   = Math.sin(moveStartHeadingRad);\n\n            driveDistance  =  fieldX * cosH + fieldY * sinH;\n            strafeDistance = -fieldX * sinH + fieldY * cosH;\n\n            heading  = odo.getHeading(AngleUnit.DEGREES);\n            turnRate = odo.getHeadingVelocity(UnnormalizedAngleUnit.DEGREES);\n\n            if (showTelemetry) {\n                myOpMode.telemetry.addData(\"Dist Ax:Lat (in)\", \"%5.2f %5.2f\", driveDistance, strafeDistance);\n                myOpMode.telemetry.addData(\"Head Deg:Rate\",    \"%5.2f %5.2f\", heading, turnRate);\n                myOpMode.telemetry.addData(\"Pinpoint Status\",  odo.getDeviceStatus());\n            }\n            return true;\n        }\n\n        void drive(double distanceInches, double power, double holdTime) {\n            resetOdometry();\n\n            driveController.reset(distanceInches, power);\n            strafeController.reset(0);\n            yawController.reset();\n            holdTimer.reset();\n\n            while (myOpMode.opModeIsActive() && readSensors()) {\n                moveRobot(driveController.getOutput(driveDistance),\n                          strafeController.getOutput(strafeDistance),\n                          yawController.getOutput(heading));\n\n                if (driveController.inPosition() && yawController.inPosition()) {\n                    if (holdTimer.time() > holdTime) {\n                        break;\n                    }\n                } else {\n                    holdTimer.reset();\n                }\n                myOpMode.sleep(10);\n            }\n            stopRobot();\n        }\n\n        void strafe(double distanceInches, double power, double holdTime) {\n            resetOdometry();\n\n            driveController.reset(0.0);\n            strafeController.reset(distanceInches, power);\n            yawController.reset();\n            holdTimer.reset();\n\n            while (myOpMode.opModeIsActive() && readSensors()) {\n                moveRobot(driveController.getOutput(driveDistance),\n                          strafeController.getOutput(strafeDistance),\n                          yawController.getOutput(heading));\n\n                if (strafeController.inPosition() && yawController.inPosition()) {\n                    if (holdTimer.time() > holdTime) {\n                        break;\n                    }\n                } else {\n                    holdTimer.reset();\n                }\n                myOpMode.sleep(10);\n            }\n            stopRobot();\n        }\n\n        void turnTo(double headingDeg, double power, double holdTime) {\n            yawController.reset(headingDeg, power);\n            holdTimer.reset();\n\n            while (myOpMode.opModeIsActive() && readSensors()) {\n                moveRobot(0, 0, yawController.getOutput(heading));\n\n                if (yawController.inPosition()) {\n                    if (holdTimer.time() > holdTime) {\n                        break;\n                    }\n                } else {\n                    holdTimer.reset();\n                }\n                myOpMode.sleep(10);\n            }\n            stopRobot();\n        }\n\n        /**\n         * Set the four wheel powers for the requested motion.\n         * drive + = forward, strafe + = left, yaw + = counter-clockwise.\n         */\n        void moveRobot(double drive, double strafe, double yaw) {\n            double lF = drive - strafe - yaw;\n            double rF = drive + strafe + yaw;\n            double lB = drive + strafe - yaw;\n            double rB = drive - strafe + yaw;\n\n            double max = Math.max(Math.abs(lF), Math.abs(rF));\n            max = Math.max(max, Math.abs(lB));\n            max = Math.max(max, Math.abs(rB));\n\n            if (max > 1.0) {\n                lF /= max;\n                rF /= max;\n                lB /= max;\n                rB /= max;\n            }\n\n            leftFrontDrive.setPower(lF);\n            rightFrontDrive.setPower(rF);\n            leftBackDrive.setPower(lB);\n            rightBackDrive.setPower(rB);\n\n            if (showTelemetry) {\n                myOpMode.telemetry.addData(\"Axes D:S:Y\",         \"%5.2f %5.2f %5.2f\", drive, strafe, yaw);\n                myOpMode.telemetry.addData(\"Wheels lf:rf:lb:rb\", \"%5.2f %5.2f %5.2f %5.2f\", lF, rF, lB, rB);\n                myOpMode.telemetry.update();\n            }\n        }\n\n        void stopRobot() {\n            moveRobot(0, 0, 0);\n        }\n\n        /**\n         * Zero the X/Y position for a new move and remember which way the robot faces now.\n         * Uses setPosition() instead of resetPosAndIMU(), so it is safe while moving.\n         */\n        void resetOdometry() {\n            odo.update();\n            moveStartHeadingRad = odo.getHeading(AngleUnit.RADIANS);\n            odo.setPosition(new Pose2D(\n                    DistanceUnit.MM, 0, 0,\n                    AngleUnit.RADIANS, moveStartHeadingRad\n            ));\n            driveDistance  = 0.0;\n            strafeDistance = 0.0;\n            driveController.reset(0);\n            strafeController.reset(0);\n        }\n\n        /** Make the robot's current facing heading 0. */\n        void resetHeading() {\n            odo.update();\n            odo.setPosition(new Pose2D(\n                    DistanceUnit.MM, odo.getPosX(DistanceUnit.MM), odo.getPosY(DistanceUnit.MM),\n                    AngleUnit.RADIANS, 0\n            ));\n            moveStartHeadingRad = 0;\n            yawController.reset(0);\n            heading = 0;\n        }\n\n        /** Show the Pinpoint's raw field position. Used by the Pinpoint Check program. */\n        void showPinpoint() {\n            odo.update();\n            heading = odo.getHeading(AngleUnit.DEGREES);\n            myOpMode.telemetry.addData(\"X (in)  forward = up\", \"%6.2f\", odo.getPosX(DistanceUnit.INCH));\n            myOpMode.telemetry.addData(\"Y (in)  left = up\",    \"%6.2f\", odo.getPosY(DistanceUnit.INCH));\n            myOpMode.telemetry.addData(\"Heading (deg)  left = up\", \"%6.1f\", heading);\n            myOpMode.telemetry.addData(\"Pinpoint status\", odo.getDeviceStatus());\n            myOpMode.telemetry.update();\n        }\n    }\n\n    // ===================================================================================\n    //  ProportionalControl: output power is proportional to how far the axis is from its\n    //  setpoint, with a ramp-up limit and a top-power limit. Unchanged from the original.\n    // ===================================================================================\n    static class ProportionalControl {\n        double  lastOutput;\n        double  gain;\n        double  accelLimit;\n        double  defaultOutputLimit;\n        double  liveOutputLimit;\n        double  setPoint;\n        double  tolerance;\n        double  deadband;\n        boolean circular;\n        boolean inPosition;\n        ElapsedTime cycleTime = new ElapsedTime();\n\n        ProportionalControl(double gain, double accelLimit, double outputLimit,\n                            double tolerance, double deadband, boolean circular) {\n            this.gain = gain;\n            this.accelLimit = accelLimit;\n            this.defaultOutputLimit = outputLimit;\n            this.liveOutputLimit = outputLimit;\n            this.tolerance = tolerance;\n            this.deadband = deadband;\n            this.circular = circular;\n            reset(0.0);\n        }\n\n        double getOutput(double input) {\n            double error = setPoint - input;\n            double dV = cycleTime.seconds() * accelLimit;\n            double output;\n\n            if (circular) {\n                while (error > 180)   error -= 360;\n                while (error <= -180) error += 360;\n            }\n\n            inPosition = (Math.abs(error) < tolerance);\n\n            if (Math.abs(error) <= deadband) {\n                output = 0;\n            } else {\n                output = (error * gain);\n                output = Range.clip(output, -liveOutputLimit, liveOutputLimit);\n\n                if ((output - lastOutput) > dV) {\n                    output = lastOutput + dV;\n                } else if ((output - lastOutput) < -dV) {\n                    output = lastOutput - dV;\n                }\n            }\n\n            lastOutput = output;\n            cycleTime.reset();\n            return output;\n        }\n\n        boolean inPosition() { return inPosition; }\n\n        void reset(double setPoint, double powerLimit) {\n            liveOutputLimit = Math.abs(powerLimit);\n            this.setPoint = setPoint;\n            reset();\n        }\n\n        void reset(double setPoint) {\n            liveOutputLimit = defaultOutputLimit;\n            this.setPoint = setPoint;\n            reset();\n        }\n\n        void reset() {\n            cycleTime.reset();\n            inPosition = false;\n            lastOutput = 0.0;\n        }\n    }\n}\n";
+
+(function () {
+  var KEY = 'spot-blocks-v1';
+  var DEFAULTS = { lf: true, rf: false, lb: true, rb: false, pod: '4-bar', xOff: 0, yOff: 0, xRev: false, yRev: false };
+  var state = Object.assign({}, DEFAULTS);
+  try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) state = Object.assign(state, saved); } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function num(n) { var x = Number(n); if (!isFinite(x)) x = 0; return String(Math.round(x * 10) / 10); }
+
+  // ---- Block builders -------------------------------------------------------
+  // socket: [value, kind, tape]  kind: n (number) | b (boolean) | s (text)
+  function sock(v, kind, tape) {
+    var cls = 'sock' + (kind === 'b' ? ' bool' : kind === 's' ? ' txt' : '') + (tape ? ' t' : '');
+    return '<span class="' + cls + '">' + esc(v) + '</span>';
+  }
+  function my(color, heading, method, args) {
+    var h = '<div class="blk my c-' + color + '"><div class="top"><span class="ttl">' + esc(heading) + '</span><span class="sub">SpotBlocks.' + esc(method) + '</span></div>';
+    if (args && args.length) {
+      h += '<div class="args">' + args.map(function (a) { return '<span class="al">' + esc(a[0]) + '</span>' + sock(a[1], a[2], a[3]); }).join('') + '</div>';
+    }
+    return h + '</div>';
+  }
+  function plain(color, html) { return '<div class="blk c-' + color + '">' + html + '</div>'; }
+  function note(text) { return plain('note', esc(text)); }
+  function loop(color, label, body) {
+    return '<div class="cblk" style="--loopc:var(--b-' + color + ')">' + plain(color, '<span class="ttl">' + esc(label) + '</span>') +
+      '<div class="inner">' + body.join('') + '</div><div class="foot"></div></div>';
+  }
+  function run(body) { return loop('op', 'runOpMode', body); }
+  function wait() { return plain('op', 'call <span class="ttl">waitForStart</span>'); }
+
+  function setupStack() {
+    return [
+      my('setup', 'set motor directions', 'setMotorDirections', [
+        ['Left front reversed', String(state.lf), 'b', true],
+        ['Right front reversed', String(state.rf), 'b', true],
+        ['Left back reversed', String(state.lb), 'b', true],
+        ['Right back reversed', String(state.rb), 'b', true]]),
+      my('setup', 'set odometry pods', 'setOdometryPods', [
+        ['Pod type', state.pod, 's', true],
+        ['X pod offset (mm)', num(state.xOff), 'n', true],
+        ['Y pod offset (mm)', num(state.yOff), 'n', true]]),
+      my('setup', 'set pod directions', 'setPodDirections', [
+        ['X pod reversed', String(state.xRev), 'b', true],
+        ['Y pod reversed', String(state.yRev), 'b', true]])
+    ];
+  }
+  function mv(name, method, label, v) {
+    return my('move', name, method, [[label, v, 'n'], ['Power', '0.5', 'n'], ['Hold (sec)', '0.25', 'n']]);
+  }
+
+  var PROGRAMS = {
+    motor: function () {
+      return run([
+        wait(),
+        plain('tele', 'call <span class="ttl">telemetry.addData</span> key ' + sock('Spinning', 's') + ' text ' + sock('left front', 's')),
+        plain('tele', 'call <span class="ttl">telemetry.update</span>'),
+        plain('motor', 'set <span class="ttl">drive_leftfront_motor.Power</span> to ' + sock('0.3', 'n')),
+        plain('op', 'call <span class="ttl">sleep</span> milliseconds ' + sock('2000', 'n')),
+        plain('motor', 'set <span class="ttl">drive_leftfront_motor.Power</span> to ' + sock('0', 'n')),
+        note('Copy the 5 blocks above three more times. Change the motor and the text to: right front, left back, right back.')
+      ]);
+    },
+    pinpoint: function () {
+      return run(setupStack().concat([
+        my('setup', 'init robot', 'initRobot', [['Show telemetry', 'false', 'b']]),
+        wait(),
+        loop('loop', 'repeat while  call opModeIsActive', [
+          my('check', 'show Pinpoint on Driver Station', 'showPinpoint', [])
+        ])
+      ]));
+    },
+    square: function () {
+      return run(setupStack().concat([
+        my('setup', 'init robot', 'initRobot', [['Show telemetry', 'false', 'b']]),
+        wait(),
+        my('move', 'reset heading', 'resetHeading', []),
+        mv('drive', 'drive', 'Inches', '24'),
+        mv('turn to', 'turnTo', 'Heading (deg)', '90'),
+        mv('drive', 'drive', 'Inches', '24'),
+        mv('turn to', 'turnTo', 'Heading (deg)', '180'),
+        mv('drive', 'drive', 'Inches', '24'),
+        mv('turn to', 'turnTo', 'Heading (deg)', '-90'),
+        mv('drive', 'drive', 'Inches', '24'),
+        mv('turn to', 'turnTo', 'Heading (deg)', '0')
+      ]));
+    },
+    box: function () {
+      return run([note('Same setup stack and init robot as Auto Square'), wait(),
+        my('move', 'reset heading', 'resetHeading', []),
+        mv('drive', 'drive', 'Inches', '24'),
+        mv('strafe', 'strafe', 'Inches', '24'),
+        mv('drive', 'drive', 'Inches', '-24'),
+        mv('strafe', 'strafe', 'Inches', '-24')
+      ]);
+    },
+    tune: function () {
+      return run([note('Same setup stack as Auto Square'),
+        my('setup', 'init robot', 'initRobot', [['Show telemetry', 'false', 'b']]),
+        my('tune', 'set gains', 'setGains', [['Drive gain', '0.03', 'n'], ['Strafe gain', '0.03', 'n'], ['Turn gain', '0.018', 'n']]),
+        my('check', 'show drive telemetry', 'showDriveTelemetry', [['Show', 'true', 'b']]),
+        wait(),
+        note('…your moves…')
+      ]);
+    }
+  };
+
+  function renderPrograms() {
+    document.querySelectorAll('[data-prog]').forEach(function (el) {
+      el.innerHTML = PROGRAMS[el.getAttribute('data-prog')]();
+    });
+  }
+
+  // ---- Pod diagram ----------------------------------------------------------
+  function podSvg() {
+    var S = 300, C = 150, half = 110;              // robot drawn as 220 px square = ~432 mm (17 in)
+    var pxPerMm = half / 216;
+    function clamp(v) { return Math.max(-half + 14, Math.min(half - 14, v)); }
+    var xOff = Number(state.xOff) || 0, yOff = Number(state.yOff) || 0;
+    // Screen: up = robot forward, left = robot left.
+    var xPodX = C - clamp(xOff * pxPerMm), xPodY = C + 30;      // X pod: sideways offset only matters
+    var yPodX = C - 30, yPodY = C - clamp(yOff * pxPerMm);      // Y pod: forward offset only matters
+    var s = '<title id="pod-svg-t">Top view of the robot showing where the two pods sit relative to the center</title>';
+    s += '<rect x="' + (C - half) + '" y="' + (C - half) + '" width="' + half * 2 + '" height="' + half * 2 + '" rx="8" fill="var(--paper)" stroke="var(--line-strong)" stroke-width="2"/>';
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (p) {
+      s += '<rect x="' + (C + p[0] * (half - 6) - 10) + '" y="' + (C + p[1] * (half - 30) - 22) + '" width="20" height="44" rx="4" fill="var(--line-strong)"/>';
+    });
+    s += '<path d="M' + C + ' ' + (C - half + 12) + ' l-8 12 h16 z" fill="var(--ink-3)"/><text x="' + (C + 12) + '" y="' + (C - half + 22) + '">front</text>';
+    s += '<line x1="' + C + '" y1="' + (C - half) + '" x2="' + C + '" y2="' + (C + half) + '" stroke="var(--line)" stroke-dasharray="4 4"/>';
+    s += '<line x1="' + (C - half) + '" y1="' + C + '" x2="' + (C + half) + '" y2="' + C + '" stroke="var(--line)" stroke-dasharray="4 4"/>';
+    s += '<circle cx="' + C + '" cy="' + C + '" r="5" fill="var(--ink)"/><text x="' + (C + 8) + '" y="' + (C - 8) + '">center</text>';
+    // X pod: wheel rolls forward, so drawn tall
+    s += '<rect x="' + (xPodX - 6) + '" y="' + (xPodY - 14) + '" width="12" height="28" rx="3" fill="var(--accent)"/><text x="' + xPodX + '" y="' + (xPodY + 30) + '" text-anchor="middle">X pod</text>';
+    if (Math.abs(xOff) > 0.5) s += '<line x1="' + C + '" y1="' + xPodY + '" x2="' + xPodX + '" y2="' + xPodY + '" stroke="var(--tape)" stroke-width="3"/>';
+    // Y pod: wheel rolls sideways, drawn wide
+    s += '<rect x="' + (yPodX - 14) + '" y="' + (yPodY - 6) + '" width="28" height="12" rx="3" fill="var(--accent)"/><text x="' + (yPodX - 22) + '" y="' + (yPodY + 4) + '" text-anchor="end">Y pod</text>';
+    if (Math.abs(yOff) > 0.5) s += '<line x1="' + yPodX + '" y1="' + C + '" x2="' + yPodX + '" y2="' + yPodY + '" stroke="var(--tape)" stroke-width="3"/>';
+    s += '<text x="' + C + '" y="' + (S - 8) + '" text-anchor="middle">X offset ' + num(xOff) + ' mm · Y offset ' + num(yOff) + ' mm</text>';
+    document.getElementById('pod-svg').innerHTML = s;
+  }
+
+  // ---- Card -----------------------------------------------------------------
+  var boolIds = { 'm-lf': 'lf', 'm-rf': 'rf', 'm-lb': 'lb', 'm-rb': 'rb', 'p-x': 'xRev', 'p-y': 'yRev' };
+  function syncCard() {
+    Object.keys(boolIds).forEach(function (id) { document.getElementById(id).checked = !!state[boolIds[id]]; });
+    document.getElementById('pod-4bar').setAttribute('aria-pressed', String(state.pod === '4-bar'));
+    document.getElementById('pod-swing').setAttribute('aria-pressed', String(state.pod === 'swingarm'));
+    document.getElementById('off-x').value = state.xOff;
+    document.getElementById('off-y').value = state.yOff;
+  }
+  function update() { save(); renderPrograms(); podSvg(); }
+
+  Object.keys(boolIds).forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function (e) { state[boolIds[id]] = e.target.checked; update(); });
+  });
+  ['pod-4bar', 'pod-swing'].forEach(function (id) {
+    document.getElementById(id).addEventListener('click', function (e) { state.pod = e.currentTarget.getAttribute('data-pod'); syncCard(); update(); });
+  });
+  [['off-x', 'xOff'], ['off-y', 'yOff']].forEach(function (p) {
+    document.getElementById(p[0]).addEventListener('input', function (e) { var v = parseFloat(e.target.value); state[p[1]] = isFinite(v) ? v : 0; update(); });
+  });
+  document.getElementById('reset').addEventListener('click', function () { state = Object.assign({}, DEFAULTS); syncCard(); update(); });
+
+  // ---- Java file ------------------------------------------------------------
+  document.getElementById('java-view').textContent = JAVA_SRC;
+  document.getElementById('loc').textContent = JAVA_SRC.split('\n').length;
+  var copyBtn = document.getElementById('copy-java');
+  copyBtn.addEventListener('click', function () {
+    function done(ok) {
+      copyBtn.textContent = ok ? 'Copied' : 'Select the code below and copy it';
+      if (ok) copyBtn.classList.add('ok');
+      if (!ok) document.querySelector('#install details').open = true;
+      setTimeout(function () { copyBtn.textContent = 'Copy file'; copyBtn.classList.remove('ok'); }, 2200);
+    }
+    try {
+      navigator.clipboard.writeText(JAVA_SRC).then(function () { done(true); }, function () { done(false); });
+    } catch (e) { done(false); }
+  });
+
+  syncCard();
+  update();
+})();
+</script>
+</body>
+</html>
