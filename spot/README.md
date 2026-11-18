@@ -2,6 +2,8 @@
 
 SPOT is [Phil Malone's Simplified Odometry](../readme.md) rebuilt for the **goBILDA Pinpoint Odometry Computer**. It keeps Phil's idea: simple, straight-line moves (`drive`, `strafe`, `turnTo`) that measure what the robot actually did, instead of a full path-following library. The Pinpoint takes the place of the two dead-wheel encoder ports and the Control Hub IMU.
 
+**Download page and setup guide:** https://ckilbane.github.io/SimplifiedOdometry/
+
 SPOT comes in three versions:
 
 | Folder | Robot | Language | Start here if... |

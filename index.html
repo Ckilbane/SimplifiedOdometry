@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPOT: Simplified Pinpoint Odometry Tracker</title>
+<meta name="description" content="Phil Malone's Simplified Odometry rebuilt for the goBILDA Pinpoint, for FTC teams using OnBot Java or Blocks.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: one-column download desk. Pick your version (three cards), grab the files, follow the steps. Same tokens as the SPOT for Blocks guide. */
+:root {
+  --paper: #F3F5F7;
+  --surface: #FFFFFF;
+  --ink: #14202B;
+  --ink-2: #4B5967;
+  --ink-3: #7A8794;
+  --line: #D6DDE4;
+  --line-strong: #B8C3CD;
+  --accent: #1D5C96;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E4EEF8;
+  --tape: #F7DA74;
+  --tape-ink: #4E3A00;
+  --b-setup: hsl(30 62% 46%);
+  --b-move: hsl(210 55% 44%);
+  --b-check: hsl(140 42% 34%);
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0D141B; --surface: #141D26; --ink: #E3E9EF; --ink-2: #A3B0BC; --ink-3: #74828F;
+    --line: #233140; --line-strong: #344555; --accent: #79B2E8; --accent-ink: #0B1520; --accent-soft: #172B3E;
+    --tape: #E6C35A; --tape-ink: #2A2000;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0D141B; --surface: #141D26; --ink: #E3E9EF; --ink-2: #A3B0BC; --ink-3: #74828F;
+  --line: #233140; --line-strong: #344555; --accent: #79B2E8; --accent-ink: #0B1520; --accent-soft: #172B3E;
+  --tape: #E6C35A; --tape-ink: #2A2000;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; text-wrap: balance; }
+p { margin: 0; }
+a { color: var(--accent); }
+code { font-family: var(--f-mono); font-size: 0.88em; background: var(--accent-soft); padding: 0.05em 0.35em; border-radius: 4px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+
+/* Masthead */
+header { background: var(--surface); border-bottom: 1px solid var(--line); }
+.mast { padding: 36px 0 30px; display: grid; grid-template-columns: auto 1fr; gap: 20px 24px; align-items: center; }
+.mark { width: 84px; height: 84px; }
+.eyebrow { font-family: var(--f-mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); line-height: 1.05; margin-top: 4px; }
+h1 .acr { color: var(--accent); }
+.lede { grid-column: 1 / -1; max-width: 68ch; color: var(--ink-2); font-size: 1.06rem; }
+.mast-links { grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 520px) { .mast { grid-template-columns: 1fr; } .mark { width: 64px; height: 64px; } }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 600; font-size: 0.92rem; border-radius: 4px; padding: 8px 14px; border: 1px solid var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.ghost { color: var(--accent); background: transparent; }
+.btn:hover { filter: brightness(1.08); }
+
+main { padding-top: 32px; padding-bottom: 56px; display: grid; gap: 40px; }
+.sec-h { display: grid; gap: 4px; margin-bottom: 14px; }
+.sec-h h2 { font-size: 1.6rem; }
+.sec-h p { color: var(--ink-2); max-width: 68ch; }
+
+/* Version cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); display: grid; grid-template-rows: auto auto 1fr auto; overflow: hidden; }
+.card .band { height: 6px; }
+.card .top { padding: 16px 18px 6px; display: grid; gap: 4px; }
+.card .who { font-family: var(--f-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-3); }
+.card h3 { font-size: 1.35rem; }
+.card .body { padding: 4px 18px 14px; display: grid; gap: 12px; align-content: start; }
+.card .body p { color: var(--ink-2); font-size: 0.95rem; }
+.files { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.files a { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; align-items: baseline; text-decoration: none; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); }
+.files a:hover { border-color: var(--accent); }
+.files .fn { font-family: var(--f-mono); font-size: 0.8rem; }
+.files .what { font-size: 0.75rem; color: var(--ink-3); white-space: nowrap; }
+.files .dl { color: var(--accent); font-size: 0.8rem; font-weight: 600; }
+.card .foot { border-top: 1px solid var(--line); padding: 12px 18px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Steps */
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; counter-reset: s; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.step::before { counter-increment: s; content: counter(s); font-family: var(--f-mono); font-weight: 600; font-size: 0.8rem; color: var(--accent-ink); background: var(--accent); border-radius: 4px; padding: 1px 8px; justify-self: start; }
+.step h3 { font-size: 1.05rem; }
+.step p { color: var(--ink-2); font-size: 0.92rem; }
+
+/* Names table */
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); font-weight: 500; background: var(--paper); }
+tr:last-child td { border-bottom: 0; }
+
+.credit { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.credit > div { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; display: grid; gap: 8px; align-content: start; }
+.credit h3 { font-size: 1.1rem; }
+.credit p, .credit li { color: var(--ink-2); font-size: 0.93rem; }
+.credit ul { margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
+footer { border-top: 1px solid var(--line); padding: 18px 0 28px; color: var(--ink-3); font-size: 0.82rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap mast">
+    <svg class="mark" viewBox="0 0 84 84" aria-hidden="true">
+      <rect x="2" y="2" width="80" height="80" rx="12" fill="var(--accent)"/>
+      <circle cx="42" cy="42" r="22" fill="none" stroke="var(--accent-ink)" stroke-width="3" opacity="0.35"/>
+      <circle cx="42" cy="42" r="12" fill="none" stroke="var(--accent-ink)" stroke-width="3" opacity="0.65"/>
+      <circle cx="42" cy="42" r="5" fill="var(--tape)"/>
+      <path d="M42 10 v10 M42 64 v10 M10 42 h10 M64 42 h10" stroke="var(--accent-ink)" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <div class="eyebrow">FTC autonomous · goBILDA Pinpoint</div>
+      <h1><span class="acr">SPOT</span>: Simplified Pinpoint Odometry Tracker</h1>
+    </div>
+    <p class="lede">SPOT is Phil Malone's Simplified Odometry rebuilt for the goBILDA Pinpoint. Your robot gets three simple moves, <code>drive</code>, <code>strafe</code> and <code>turnTo</code>, and each one measures what the robot actually did. You don't need a path-following library or a tuning marathon. It comes in OnBot Java for mecanum and StarterBot tank drive, and as custom Blocks for Blocks-only teams.</p>
+    <div class="mast-links">
+      <a class="btn primary" href="#versions">Get the files</a>
+      <a class="btn ghost" href="spot/blocks/SPOT-Blocks-Guide.html">Blocks setup guide</a>
+      <a class="btn ghost" href="https://github.com/Ckilbane/SimplifiedOdometry/tree/spot">View on GitHub</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="versions">
+    <div class="sec-h">
+      <h2>Pick your version</h2>
+      <p>Every version needs FTC SDK <strong>10.3 or newer</strong>, which has the Pinpoint driver built in. Click a file to download it.</p>
+    </div>
+    <div class="cards">
+
+      <article class="card">
+        <div class="band" style="background:var(--b-setup)"></div>
+        <div class="top"><span class="who">Blocks teams</span><h3>SPOT for Blocks</h3></div>
+        <div class="body">
+          <p>Mecanum + Pinpoint as custom blocks. Upload one Java file once, then every setting and every move is a block. Mentors never have to open Java.</p>
+          <ul class="files">
+            <li><a href="spot/blocks/SpotBlocks.java" download><span class="fn">SpotBlocks.java</span><span class="dl">Download</span></a></li>
+          </ul>
+        </div>
+        <div class="foot"><a class="btn primary" href="spot/blocks/SPOT-Blocks-Guide.html">Open the setup guide</a></div>
+      </article>
+
+      <article class="card">
+        <div class="band" style="background:var(--b-move)"></div>
+        <div class="top"><span class="who">OnBot Java · mecanum</span><h3>SPOT Mecanum</h3></div>
+        <div class="body">
+          <p>Phil's <code>SimplifiedOdometryRobot</code> class, converted to the Pinpoint, plus the test programs to set it up. Built on a goBILDA Strafer.</p>
+          <ul class="files">
+            <li><a href="spot/mecanum/SimplifiedOdometryRobot.java" download><span class="fn">SimplifiedOdometryRobot.java</span><span class="dl">Download</span></a></li>
+            <li><a href="spot/mecanum/MotorDirectionTest.java" download><span class="fn">MotorDirectionTest.java</span><span class="dl">Download</span></a></li>
+            <li><a href="spot/mecanum/PinpointTest.java" download><span class="fn">PinpointTest.java</span><span class="dl">Download</span></a></li>
+            <li><a href="spot/mecanum/FieldCentricTeleOp.java" download><span class="fn">FieldCentricTeleOp.java</span><span class="dl">Download</span></a></li>
+            <li><a href="spot/mecanum/FirstAuto.java" download><span class="fn">FirstAuto.java</span><span class="dl">Download</span></a></li>
+          </ul>
+        </div>
+        <div class="foot"><a class="btn ghost" href="https://github.com/Ckilbane/SimplifiedOdometry/tree/spot/spot#mecanum-onbot-java">Setup notes</a></div>
+      </article>
+
+      <article class="card">
+        <div class="band" style="background:var(--b-check)"></div>
+        <div class="top"><span class="who">OnBot Java · tank drive</span><h3>SPOT StarterBot</h3></div>
+        <div class="body">
+          <p>The two-motor tank version for the goBILDA StarterBot: <code>drive</code> and <code>turnTo</code>, no strafing. Uses the StarterBot kit's hardware names, so there's nothing to reconfigure.</p>
+          <ul class="files">
+            <li><a href="spot/starterbot/StarterBotOdometryRobot.java" download><span class="fn">StarterBotOdometryRobot.java</span><span class="dl">Download</span></a></li>
+          </ul>
+        </div>
+        <div class="foot"><a class="btn ghost" href="https://github.com/Ckilbane/SimplifiedOdometry/tree/spot/spot#starterbot-onbot-java">Setup notes</a></div>
+      </article>
+
+    </div>
+    <p style="margin-top:12px;font-size:0.9rem;color:var(--ink-2)">Want everything? <a href="https://github.com/Ckilbane/SimplifiedOdometry/archive/refs/heads/spot.zip">Download the whole SPOT branch as a .zip</a>.</p>
+  </section>
+
+  <section>
+    <div class="sec-h">
+      <h2>Get it onto the robot</h2>
+      <p>These steps are the same for every version. You don't need Android Studio.</p>
+    </div>
+    <div class="steps">
+      <div class="step"><h3>Download the files</h3><p>Download the files for your version from the cards above onto a laptop.</p></div>
+      <div class="step"><h3>Join the robot's Wi-Fi</h3><p>Connect the laptop to the robot's network and open <code>192.168.43.1:8080</code> in a browser.</p></div>
+      <div class="step"><h3>Upload in OnBot Java</h3><p>Open the OnBot Java tab, click <strong>Upload Files</strong> and pick the downloaded <code>.java</code> files. They go in the <code>teamcode</code> folder.</p></div>
+      <div class="step"><h3>Build Everything</h3><p>Click the wrench and wait for <em>Build SUCCESSFUL</em>. Blocks teams then find <strong>Java Classes → SpotBlocks</strong> in the Blocks editor.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-h">
+      <h2>Hardware names</h2>
+      <p>Your Control Hub configuration has to use these names exactly. Blocks teams can use a <em>set device names</em> block instead of renaming.</p>
+    </div>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Device</th><th>Mecanum and Blocks</th><th>StarterBot</th></tr></thead>
+        <tbody>
+          <tr><td>Left front / left drive motor</td><td><code>drive_leftfront_motor</code></td><td><code>left_drive</code></td></tr>
+          <tr><td>Right front / right drive motor</td><td><code>drive_rightfront_motor</code></td><td><code>right_drive</code></td></tr>
+          <tr><td>Left back motor</td><td><code>drive_leftback_motor</code></td><td>none</td></tr>
+          <tr><td>Right back motor</td><td><code>drive_rightback_motor</code></td><td>none</td></tr>
+          <tr><td>Pinpoint (I2C: goBILDA Pinpoint Odometry Computer)</td><td><code>odom_pinpoint_sensor</code></td><td><code>odo</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="credit">
+    <div>
+      <h3>Built on Phil's work</h3>
+      <p>Simplified Odometry and its <code>ProportionalControl</code> class are by Phil Malone (Mr. Phil). The motion logic is his, unchanged. His videos explain how it all works and still apply to SPOT:</p>
+      <ul>
+        <li><a href="https://youtu.be/lpVG2Pl6RGY">Part 1: Overview</a></li>
+        <li><a href="https://youtu.be/EV7n9rGcxF4">Part 2: Autonomous</a></li>
+        <li><a href="https://youtu.be/X7RyAMbP240">Part 3: Teleoperation</a></li>
+        <li><a href="https://youtu.be/eWzGW7ZcPh8">Part 4: The robot class</a></li>
+      </ul>
+      <p><a href="https://github.com/gearsincorg/SimplifiedOdometry">Phil's original repository</a></p>
+    </div>
+    <div>
+      <h3>What SPOT changes</h3>
+      <ul>
+        <li>The Pinpoint replaces the dead-wheel encoder ports and the hub IMU.</li>
+        <li>Moves stay robot-relative after a turn, even though the Pinpoint reports field position.</li>
+        <li>Every Pinpoint call passes explicit units, as the SDK's built-in driver requires.</li>
+        <li>Blocks teams get the whole thing as custom blocks with plain-language error messages.</li>
+      </ul>
+      <p>Status: compiled against stand-ins for the SDK classes. The Blocks version hasn't run on a robot yet. Please report what you find.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">SPOT Pinpoint conversion and Blocks version by Corey Kilbane, Springside Chestnut Hill Academy robotics. Not affiliated with goBILDA or <em>FIRST</em>.</div>
+</footer>
+</body>
+</html>
