@@ -60,7 +60,7 @@ public class SpotBlocks extends BlocksOpModeCompanion {
     private static final int CHECK_COLOR  = 140;
 
     // Settings collected by the setup blocks. "init robot" uses them, then puts them
-    // back to the defaults, so every program has to say what its robot needs.
+    // back to the defaults, so a value left over from an earlier program never sneaks in.
     private static Settings pending = new Settings();
     private static LinearOpMode pendingOwner = null;
 
@@ -77,14 +77,13 @@ public class SpotBlocks extends BlocksOpModeCompanion {
         color = SETUP_COLOR,
         comment = "Optional. Only needed if your configuration does not use the standard names " +
                   "(drive_leftfront_motor, drive_rightfront_motor, drive_leftback_motor, " +
-                  "drive_rightback_motor, odom_pinpoint_sensor). Use before init robot.",
+                  "drive_rightback_motor, odom_pinpoint_sensor). Must go before init robot.",
         tooltip = "Match the names in your Control Hub configuration",
         parameterLabels = {"Left front motor", "Right front motor", "Left back motor",
                            "Right back motor", "Pinpoint"}
     )
     public static void setDeviceNames(String leftFront, String rightFront,
                                       String leftBack, String rightBack, String pinpoint) {
-        requireBeforeInit("set device names");
         Settings s = settings();
         s.leftFrontName  = leftFront.trim();
         s.rightFrontName = rightFront.trim();
@@ -97,19 +96,19 @@ public class SpotBlocks extends BlocksOpModeCompanion {
         heading = "set motor directions",
         color = SETUP_COLOR,
         comment = "Use the answers from the Motor Direction Check. true = that motor is reversed. " +
-                  "A goBILDA Strafer usually needs both LEFT motors reversed. Use before init robot.",
+                  "A goBILDA Strafer usually needs both LEFT motors reversed. Put it before init robot.",
         tooltip = "Which drive motors are reversed",
         parameterLabels = {"Left front reversed", "Right front reversed",
                            "Left back reversed", "Right back reversed"}
     )
     public static void setMotorDirections(boolean leftFrontReversed, boolean rightFrontReversed,
                                           boolean leftBackReversed, boolean rightBackReversed) {
-        requireBeforeInit("set motor directions");
         Settings s = settings();
         s.leftFrontReversed  = leftFrontReversed;
         s.rightFrontReversed = rightFrontReversed;
         s.leftBackReversed   = leftBackReversed;
         s.rightBackReversed  = rightBackReversed;
+        applyToLiveRobot(s);
     }
 
     @ExportToBlocks(
@@ -118,16 +117,16 @@ public class SpotBlocks extends BlocksOpModeCompanion {
         comment = "Pod type is the text 4-bar or swingarm. Offsets are in millimeters from the " +
                   "center of the robot: X offset = how far LEFT of center the forward pod is " +
                   "(right of center is negative). Y offset = how far FORWARD of center the " +
-                  "sideways pod is (behind center is negative). Use before init robot.",
+                  "sideways pod is (behind center is negative). Put it before init robot.",
         tooltip = "Pod type and where the pods are mounted",
         parameterLabels = {"Pod type", "X pod offset (mm)", "Y pod offset (mm)"}
     )
     public static void setOdometryPods(String podType, double xOffsetMM, double yOffsetMM) {
-        requireBeforeInit("set odometry pods");
         Settings s = settings();
         s.swingarmPods = parsePodType(podType);
         s.xOffsetMM    = xOffsetMM;
         s.yOffsetMM    = yOffsetMM;
+        applyToLiveRobot(s);
     }
 
     @ExportToBlocks(
@@ -135,15 +134,15 @@ public class SpotBlocks extends BlocksOpModeCompanion {
         color = SETUP_COLOR,
         comment = "Use the answers from the Pinpoint Check. X must go UP when the robot is pushed " +
                   "forward. Y must go UP when the robot is pushed left. Set true for any that " +
-                  "went the wrong way. Use before init robot.",
+                  "went the wrong way. Put it before init robot.",
         tooltip = "Which odometry pods count backwards",
         parameterLabels = {"X pod reversed", "Y pod reversed"}
     )
     public static void setPodDirections(boolean xReversed, boolean yReversed) {
-        requireBeforeInit("set pod directions");
         Settings s = settings();
         s.xPodReversed = xReversed;
         s.yPodReversed = yReversed;
+        applyToLiveRobot(s);
     }
 
     @ExportToBlocks(
@@ -303,7 +302,9 @@ public class SpotBlocks extends BlocksOpModeCompanion {
     //  Helpers (not blocks)
     // ===================================================================================
 
-    // True when "init robot" already ran in the program that is running right now.
+    // True when "init robot" has run in this program. The Robot Controller reuses the same
+    // program object for every run, so this can also be true for a robot built on an earlier
+    // run of the same program. Nothing below may treat it as "init robot ran THIS run".
     private static boolean robotIsReady() {
         return robot != null && robotOwner == linearOpMode;
     }
@@ -335,11 +336,17 @@ public class SpotBlocks extends BlocksOpModeCompanion {
         }
     }
 
-    private static void requireBeforeInit(String blockName) {
-        if (robotIsReady()) {
-            throw new IllegalStateException(
-                "Move the \"" + blockName + "\" block ABOVE \"init robot\". " +
-                "Settings only take effect when init robot runs.");
+    // A set block placed after "init robot" still works: the change goes straight to the
+    // robot that init robot built. Before init robot (the normal place) there may be a robot
+    // left over from an earlier run, because the Robot Controller reuses the same program
+    // object every time a program runs. Updating that old robot does no harm, and init robot
+    // replaces it a moment later, so any error here is ignored.
+    private static void applyToLiveRobot(Settings s) {
+        if (!robotIsReady()) return;
+        try {
+            robot.applySettings(s);
+        } catch (RuntimeException ignored) {
+            // The old robot's hardware is gone (for example, the configuration changed).
         }
     }
 
@@ -634,6 +641,25 @@ public class SpotBlocks extends BlocksOpModeCompanion {
             moveStartHeadingRad = 0;
             yawController.reset(0);
             heading = 0;
+        }
+
+        /** Send changed directions and pod settings to hardware that is already set up. */
+        void applySettings(Settings s) {
+            leftFrontDrive.setDirection(s.leftFrontReversed  ? DcMotor.Direction.REVERSE : DcMotor.Direction.FORWARD);
+            rightFrontDrive.setDirection(s.rightFrontReversed ? DcMotor.Direction.REVERSE : DcMotor.Direction.FORWARD);
+            leftBackDrive.setDirection(s.leftBackReversed   ? DcMotor.Direction.REVERSE : DcMotor.Direction.FORWARD);
+            rightBackDrive.setDirection(s.rightBackReversed  ? DcMotor.Direction.REVERSE : DcMotor.Direction.FORWARD);
+
+            odo.setOffsets(s.xOffsetMM, s.yOffsetMM, DistanceUnit.MM);
+            odo.setEncoderResolution(s.swingarmPods
+                    ? GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_SWINGARM_POD
+                    : GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
+            odo.setEncoderDirections(
+                    s.xPodReversed ? GoBildaPinpointDriver.EncoderDirection.REVERSED
+                                   : GoBildaPinpointDriver.EncoderDirection.FORWARD,
+                    s.yPodReversed ? GoBildaPinpointDriver.EncoderDirection.REVERSED
+                                   : GoBildaPinpointDriver.EncoderDirection.FORWARD
+            );
         }
 
         /** Show the Pinpoint's raw field position. Used by the Pinpoint Check program. */
