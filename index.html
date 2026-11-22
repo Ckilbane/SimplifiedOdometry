@@ -134,6 +134,7 @@ footer { border-top: 1px solid var(--line); padding: 18px 0 28px; color: var(--i
     <div class="mast-links">
       <a class="btn primary" href="#versions">Get the files</a>
       <a class="btn ghost" href="spot/blocks/SPOT-Blocks-Guide.html">Blocks setup guide</a>
+      <a class="btn ghost" href="https://github.com/Ckilbane/SimplifiedOdometry/blob/spot/spot/TROUBLESHOOTING.md">Troubleshooting</a>
       <a class="btn ghost" href="https://github.com/Ckilbane/SimplifiedOdometry/tree/spot">View on GitHub</a>
     </div>
   </div>
@@ -157,7 +158,7 @@ footer { border-top: 1px solid var(--line); padding: 18px 0 28px; color: var(--i
             <li><a href="spot/blocks/SpotBlocks.java" download><span class="fn">SpotBlocks.java</span><span class="dl">Download</span></a></li>
           </ul>
         </div>
-        <div class="foot"><a class="btn primary" href="spot/blocks/SPOT-Blocks-Guide.html">Open the setup guide</a></div>
+        <div class="foot"><a class="btn primary" href="spot/blocks/SPOT-Blocks-Guide.html">Open the setup guide</a><a class="btn ghost" href="spot/blocks/SPOT-Blocks-Guide.html#troubleshooting">Troubleshooting</a></div>
       </article>
 
       <article class="card">
@@ -173,7 +174,7 @@ footer { border-top: 1px solid var(--line); padding: 18px 0 28px; color: var(--i
             <li><a href="spot/mecanum/FirstAuto.java" download><span class="fn">FirstAuto.java</span><span class="dl">Download</span></a></li>
           </ul>
         </div>
-        <div class="foot"><a class="btn ghost" href="https://github.com/Ckilbane/SimplifiedOdometry/tree/spot/spot#mecanum-onbot-java">Setup notes</a></div>
+        <div class="foot"><a class="btn ghost" href="https://github.com/Ckilbane/SimplifiedOdometry/tree/spot/spot#mecanum-onbot-java">Setup notes</a><a class="btn ghost" href="https://github.com/Ckilbane/SimplifiedOdometry/blob/spot/spot/TROUBLESHOOTING.md">Troubleshooting</a></div>
       </article>
 
       <article class="card">
@@ -185,7 +186,7 @@ footer { border-top: 1px solid var(--line); padding: 18px 0 28px; color: var(--i
             <li><a href="spot/starterbot/StarterBotOdometryRobot.java" download><span class="fn">StarterBotOdometryRobot.java</span><span class="dl">Download</span></a></li>
           </ul>
         </div>
-        <div class="foot"><a class="btn ghost" href="https://github.com/Ckilbane/SimplifiedOdometry/tree/spot/spot#starterbot-onbot-java">Setup notes</a></div>
+        <div class="foot"><a class="btn ghost" href="https://github.com/Ckilbane/SimplifiedOdometry/tree/spot/spot#starterbot-onbot-java">Setup notes</a><a class="btn ghost" href="https://github.com/Ckilbane/SimplifiedOdometry/blob/spot/spot/TROUBLESHOOTING.md">Troubleshooting</a></div>
       </article>
 
     </div>
@@ -242,7 +243,7 @@ footer { border-top: 1px solid var(--line); padding: 18px 0 28px; color: var(--i
         <li>The Pinpoint replaces the dead-wheel encoder ports and the hub IMU.</li>
         <li>Moves stay robot-relative after a turn, even though the Pinpoint reports field position.</li>
         <li>Every Pinpoint call passes explicit units, as the SDK's built-in driver requires.</li>
-        <li>Blocks teams get the whole thing as custom blocks with plain-language error messages.</li>
+        <li>Blocks teams get the whole thing as custom blocks with plain-language error messages, and a safety stop when a pod or motor is reversed.</li>
       </ul>
       <p>Status: compiled against stand-ins for the SDK classes. The Blocks version hasn't run on a robot yet. Please report what you find.</p>
     </div>

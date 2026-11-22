@@ -54,13 +54,17 @@ This replaces Phil's root-level `SimplifiedOdometryRobot.java`. Don't put both o
 
 Open [`SPOT-Blocks-Guide.html`](blocks/SPOT-Blocks-Guide.html) in a browser for the full setup. It covers configuration, install, a Motor Direction Check and a Pinpoint Check built in Blocks, first autonomous programs, tuning and error messages. Fill in the "Your robot" card and the block pictures update with your values.
 
-The blocks stop with a plain-language message on the Driver Station if they're used out of order. Examples are a move block before `init robot`, a setup block after it, a power of 0, or a misspelled pod type.
+The blocks stop with a plain-language message on the Driver Station if they're used wrong, such as a move block before `init robot`, a power of 0, or a misspelled pod type. They also stop the robot if a move goes wrong. If the robot moves away from its target, pushes with no measured progress, or turns off course while driving straight, SpotBlocks stops it and says which pod or motor to check.
+
+## Troubleshooting
+
+Robot running away, spinning or stopping with an error? See [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) for the Java versions, or the Troubleshooting section of the Blocks guide.
 
 ## Status
 
 - Every file compiles together against stand-ins for the SDK classes. Nothing here has been built against the real SDK.
 - The mecanum Java files are the version used for the SCH Strafer drivetrain lab.
-- The Blocks version has not run on a robot yet. Reports from the first teams that try it are welcome.
+- The Blocks version is in testing with its first teams. Its safety stops have been tested in a simulator against reversed, swapped and unplugged pods, reversed and swapped motors, and a wall. They haven't been tested on a robot yet.
 
 ## Credit
 

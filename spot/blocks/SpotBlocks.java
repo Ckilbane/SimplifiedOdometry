@@ -515,11 +515,14 @@ public class SpotBlocks extends BlocksOpModeCompanion {
             strafeController.reset(0);
             yawController.reset();
             holdTimer.reset();
+            MoveGuard guard = new MoveGuard(Axis.DRIVE, Math.abs(distanceInches));
 
             while (myOpMode.opModeIsActive() && readSensors()) {
-                moveRobot(driveController.getOutput(driveDistance),
+                double drivePower = driveController.getOutput(driveDistance);
+                moveRobot(drivePower,
                           strafeController.getOutput(strafeDistance),
                           yawController.getOutput(heading));
+                guard.check(distanceInches - driveDistance, drivePower, driveController.inPosition());
 
                 if (driveController.inPosition() && yawController.inPosition()) {
                     if (holdTimer.time() > holdTime) {
@@ -540,11 +543,14 @@ public class SpotBlocks extends BlocksOpModeCompanion {
             strafeController.reset(distanceInches, power);
             yawController.reset();
             holdTimer.reset();
+            MoveGuard guard = new MoveGuard(Axis.STRAFE, Math.abs(distanceInches));
 
             while (myOpMode.opModeIsActive() && readSensors()) {
+                double strafePower = strafeController.getOutput(strafeDistance);
                 moveRobot(driveController.getOutput(driveDistance),
-                          strafeController.getOutput(strafeDistance),
+                          strafePower,
                           yawController.getOutput(heading));
+                guard.check(distanceInches - strafeDistance, strafePower, strafeController.inPosition());
 
                 if (strafeController.inPosition() && yawController.inPosition()) {
                     if (holdTimer.time() > holdTime) {
@@ -561,9 +567,12 @@ public class SpotBlocks extends BlocksOpModeCompanion {
         void turnTo(double headingDeg, double power, double holdTime) {
             yawController.reset(headingDeg, power);
             holdTimer.reset();
+            MoveGuard guard = new MoveGuard(Axis.TURN, Math.abs(wrapDegrees(headingDeg - heading)));
 
             while (myOpMode.opModeIsActive() && readSensors()) {
-                moveRobot(0, 0, yawController.getOutput(heading));
+                double turnPower = yawController.getOutput(heading);
+                moveRobot(0, 0, turnPower);
+                guard.check(wrapDegrees(headingDeg - heading), turnPower, yawController.inPosition());
 
                 if (yawController.inPosition()) {
                     if (holdTimer.time() > holdTime) {
@@ -575,6 +584,129 @@ public class SpotBlocks extends BlocksOpModeCompanion {
                 myOpMode.sleep(10);
             }
             stopRobot();
+        }
+
+        // ===============================================================================
+        //  MoveGuard: stops a move that has clearly gone wrong, instead of letting the
+        //  robot drive into a wall. A move is stopped when:
+        //    1. it ends up much FARTHER from its target than when it started (a pod or
+        //       motor is reversed, so every inch of movement looks like the wrong way),
+        //    2. the robot is being pushed hard but the Pinpoint measures no progress
+        //       (a pod is unplugged, off the floor or swapped, or the robot is stuck), or
+        //    3. during drive or strafe, the robot turns far off its heading (heading
+        //       counts backwards, or the motors turn the robot the wrong way).
+        //  Normal moves never come close to these limits.
+        // ===============================================================================
+        enum Axis { DRIVE, STRAFE, TURN }
+
+        private static final double AWAY_LIMIT_IN      = 6.0;   // inches past the starting error
+        private static final double AWAY_LIMIT_DEG     = 30.0;  // degrees past the starting error
+        private static final double HEADING_LIMIT_DEG  = 45.0;  // heading error allowed during drive/strafe
+        private static final double PUSHING_POWER      = 0.2;   // power that always moves a robot
+        private static final double STALL_SECONDS      = 0.75;   // pushing this long with no progress = stalled
+        private static final double PROGRESS_IN        = 0.5;   // how much closer counts as progress
+        private static final double PROGRESS_DEG       = 1.0;
+
+        class MoveGuard {
+            private final Axis axis;
+            private final double startError;
+            private double bestError;
+            private final ElapsedTime sinceProgress = new ElapsedTime();
+
+            MoveGuard(Axis axis, double startError) {
+                this.axis = axis;
+                this.startError = startError;
+                this.bestError = startError;
+            }
+
+            void check(double error, double axisPower, boolean inPosition) {
+                double err = Math.abs(error);
+                boolean turning = (axis == Axis.TURN);
+                double step = turning ? PROGRESS_DEG : PROGRESS_IN;
+
+                // 1. Moving away from the target.
+                double awayLimit = turning ? AWAY_LIMIT_DEG : AWAY_LIMIT_IN;
+                if (err > startError + awayLimit) {
+                    fail(movingAwayMessage());
+                }
+
+                // 3. Turning off course while driving or strafing.
+                if (!turning) {
+                    double headingError = Math.abs(wrapDegrees(yawController.setPoint - heading));
+                    if (headingError > HEADING_LIMIT_DEG) {
+                        fail("SPOT stopped the robot: it turned more than " + (int) HEADING_LIMIT_DEG +
+                             " degrees while trying to go straight. The heading counts the wrong way " +
+                             "or the motors turn the robot the wrong way. Run the Pinpoint Check " +
+                             "(turning left must make heading go UP), then the Motor Direction Check.");
+                    }
+                }
+
+                // 2. Pushing hard with no progress.
+                if (err < bestError - step) {
+                    bestError = err;
+                    sinceProgress.reset();
+                } else if (inPosition || Math.abs(axisPower) < PUSHING_POWER) {
+                    sinceProgress.reset();   // near the target, or barely pushing: not a stall
+                } else if (sinceProgress.seconds() > STALL_SECONDS) {
+                    boolean neverMoved = (startError - bestError) < step;
+                    fail(neverMoved ? noMovementMessage() : stuckMessage(err));
+                }
+            }
+
+            private void fail(String message) {
+                stopRobot();
+                throw new IllegalStateException(message);
+            }
+
+            private String movingAwayMessage() {
+                switch (axis) {
+                    case DRIVE:
+                        return "SPOT stopped the robot: it drove AWAY from its target. The X pod counts " +
+                               "backwards or is swapped with the Y pod, or the drive motors are reversed. Run the Pinpoint Check " +
+                               "(pushing the robot forward must make X go UP), then the Motor Direction Check.";
+                    case STRAFE:
+                        return "SPOT stopped the robot: it strafed AWAY from its target. The Y pod counts " +
+                               "backwards or is swapped with the X pod, or the motor directions are wrong. Run the Pinpoint Check " +
+                               "(pushing the robot left must make Y go UP), then the Motor Direction Check.";
+                    default:
+                        return "SPOT stopped the robot: it turned AWAY from its target heading. The heading " +
+                               "counts backwards (is the Pinpoint upside down?) or the motor directions are " +
+                               "wrong. Run the Pinpoint Check (turning left must make heading go UP), then " +
+                               "the Motor Direction Check.";
+                }
+            }
+
+            private String noMovementMessage() {
+                switch (axis) {
+                    case DRIVE:
+                        return "SPOT stopped the robot: it was told to drive, but the Pinpoint measured no " +
+                               "forward movement. The X pod may be unplugged, off the floor, or swapped with " +
+                               "the Y pod, or the wheels aren't turning. Run the Pinpoint Check.";
+                    case STRAFE:
+                        return "SPOT stopped the robot: it was told to strafe, but the Pinpoint measured no " +
+                               "sideways movement. The Y pod may be unplugged, off the floor, or swapped with " +
+                               "the X pod. If the robot drove forward or spun instead of sliding, a front and " +
+                               "back motor are probably swapped: run the Motor Direction Check. Otherwise run " +
+                               "the Pinpoint Check.";
+                    default:
+                        return "SPOT stopped the robot: it was told to turn, but the Pinpoint measured no " +
+                               "turning. Check the Pinpoint status in the Pinpoint Check, and that the " +
+                               "wheels are turning.";
+                }
+            }
+
+            private String stuckMessage(double err) {
+                String unit = (axis == Axis.TURN) ? " degrees" : " inches";
+                return "SPOT stopped the robot: it stopped getting closer to its target with " +
+                       Math.round(err) + unit + " to go. Is it pushing against a wall or a game element? " +
+                       "If not, run the Pinpoint Check.";
+            }
+        }
+
+        static double wrapDegrees(double deg) {
+            while (deg > 180)   deg -= 360;
+            while (deg <= -180) deg += 360;
+            return deg;
         }
 
         /**
