@@ -244,6 +244,7 @@ footer { border-top: 1px solid var(--line); padding: 18px 0 28px; color: var(--i
         <li>Moves stay robot-relative after a turn, even though the Pinpoint reports field position.</li>
         <li>Every Pinpoint call passes explicit units, as the SDK's built-in driver requires.</li>
         <li>Blocks teams get the whole thing as custom blocks with plain-language error messages, and a safety stop when a pod or motor is reversed.</li>
+        <li>The robot's position carries over from autonomous to TeleOp, so field centric driving knows which way is away from the drivers.</li>
       </ul>
       <p>Status: compiled against stand-ins for the SDK classes. The Blocks version hasn't run on a robot yet. Please report what you find.</p>
     </div>

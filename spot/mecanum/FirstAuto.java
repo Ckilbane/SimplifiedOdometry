@@ -10,7 +10,8 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
-@Autonomous(name = "First Auto: Square", group = "Auto")
+// preselectTeleOp loads the TeleOp as soon as this auto ends, ready to continue from here.
+@Autonomous(name = "First Auto: Square", group = "Auto", preselectTeleOp = "Field Centric Drive (Pinpoint)")
 public class FirstAuto extends LinearOpMode {
 
     // All the drive code lives in SimplifiedOdometryRobot.
@@ -19,6 +20,11 @@ public class FirstAuto extends LinearOpMode {
 
     @Override
     public void runOpMode() {
+
+        // Which way the robot faces at the start: 0 = away from the drivers,
+        // 90 = toward their left, -90 = their right. TeleOp uses this to know which
+        // way is "away from the driver". turnTo() still measures from the start facing.
+        robot.setStartHeading(0);
 
         // Connect the hardware and set up the Pinpoint. Robot must be still.
         robot.initialize(true);

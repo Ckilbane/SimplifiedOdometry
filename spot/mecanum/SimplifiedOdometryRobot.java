@@ -77,6 +77,20 @@ public class SimplifiedOdometryRobot {
     private ElapsedTime holdTimer = new ElapsedTime();
 
     private double turnRate            = 0;
+    private double moveStartX          = 0;  // Pinpoint position when the current move began, inches
+    private double moveStartY          = 0;
+    private double pinX                = 0;  // raw Pinpoint position, inches
+    private double pinY                = 0;
+
+    // Where the robot is in the drivers' frame: X = away from the drivers, Y = toward their
+    // left, heading 0 = facing away from the drivers. Saved to PoseMemory on every read.
+    private double fieldX              = 0;
+    private double fieldY              = 0;
+    private double fieldHeading        = 0;
+    private double startHeadingDeg     = 0;  // auto only: which way the robot faces at the start
+    private double fieldOffsetDeg      = 0;  // turns the Pinpoint's frame into the drivers' frame
+    private boolean continuing         = false;
+
     private double moveStartHeadingRad = 0;  // heading when the current drive/strafe began
     private boolean showTelemetry      = false;
 
@@ -90,6 +104,16 @@ public class SimplifiedOdometryRobot {
      * @param showTelemetry  true to show sensor and drive values on the Driver Station.
      */
     public void initialize(boolean showTelemetry) {
+        initialize(showTelemetry, false);
+    }
+
+    /**
+     * Same as initialize(showTelemetry), with a choice to continue from the last autonomous.
+     * @param continueFromAuto  true in TeleOp: if an autonomous ran in the last 2 minutes,
+     *                          start from where it left the robot, with heading 0 = facing away
+     *                          from the drivers. The Driver Station says what happened.
+     */
+    public void initialize(boolean showTelemetry, boolean continueFromAuto) {
 
         // Directions from the Motor Direction Test.
         leftFrontDrive  = setupDriveMotor("drive_leftfront_motor",  DcMotor.Direction.REVERSE);
@@ -111,6 +135,7 @@ public class SimplifiedOdometryRobot {
         // The robot MUST be sitting still for this (about a quarter second).
         odo.resetPosAndIMU();
         moveStartHeadingRad = 0;
+        fieldOffsetDeg = startHeadingDeg;
 
         List<LynxModule> allHubs = myOpMode.hardwareMap.getAll(LynxModule.class);
         for (LynxModule module : allHubs) {
@@ -118,6 +143,25 @@ public class SimplifiedOdometryRobot {
         }
 
         this.showTelemetry = showTelemetry;
+
+        if (continueFromAuto) {
+            myOpMode.sleep(300);   // let the gyro finish calibrating first
+            myOpMode.telemetry.addLine(continueFromAuto());
+            myOpMode.telemetry.update();
+        }
+    }
+
+    /**
+     * Autonomous only. Which way the robot faces at the start, in degrees, measured from
+     * straight away from the drivers: 0 = away, 90 = toward the drivers' left, -90 = their
+     * right, 180 = facing the drivers. TeleOp uses it to know which way is away from the
+     * drivers. turnTo() doesn't change: turnTo(0, ...) still means the way the robot started.
+     */
+    public void setStartHeading(double degrees) {
+        startHeadingDeg = degrees;
+        if (!continuing) {
+            fieldOffsetDeg = degrees;
+        }
     }
 
     private DcMotor setupDriveMotor(String deviceName, DcMotor.Direction direction) {
@@ -134,23 +178,21 @@ public class SimplifiedOdometryRobot {
      * Always returns true so it can sit inside a while() condition.
      */
     public boolean readSensors() {
-        odo.update();
+        updatePose();
 
-        // The Pinpoint tracks position on the FIELD: X is the way the robot faced
-        // at the last reset, Y is to the left of that. drive() and strafe() need
-        // distance along the robot's OWN axes, so we turn the field position into
-        // "how far forward" and "how far left" relative to the heading the robot
-        // had when this move started. Without this, every move after a turn
+        // The Pinpoint tracks position on the FIELD. drive() and strafe() need distance
+        // along the robot's OWN axes, so take how far the robot has moved since this move
+        // started and turn it into "how far forward" and "how far left", using the heading
+        // the robot had when the move started. Without this, every move after a turn
         // measures the wrong direction.
-        double fieldX = odo.getPosX(DistanceUnit.INCH);
-        double fieldY = odo.getPosY(DistanceUnit.INCH);
-        double cosH   = Math.cos(moveStartHeadingRad);
-        double sinH   = Math.sin(moveStartHeadingRad);
+        double dx   = pinX - moveStartX;
+        double dy   = pinY - moveStartY;
+        double cosH = Math.cos(moveStartHeadingRad);
+        double sinH = Math.sin(moveStartHeadingRad);
 
-        driveDistance  =  fieldX * cosH + fieldY * sinH;
-        strafeDistance = -fieldX * sinH + fieldY * cosH;
+        driveDistance  =  dx * cosH + dy * sinH;
+        strafeDistance = -dx * sinH + dy * cosH;
 
-        heading  = odo.getHeading(AngleUnit.DEGREES);
         turnRate = odo.getHeadingVelocity(UnnormalizedAngleUnit.DEGREES);
 
         if (showTelemetry) {
@@ -288,16 +330,14 @@ public class SimplifiedOdometryRobot {
     }
 
     /**
-     * Zero the X/Y position for a new move and remember which way the robot faces now.
-     * Uses setPosition() instead of resetPosAndIMU(), so it is safe while moving.
+     * Start a new move from where the robot is now: remember its position and which way it
+     * faces. The Pinpoint keeps its field position, so nothing is lost between moves.
      */
     public void resetOdometry() {
-        odo.update();
-        moveStartHeadingRad = odo.getHeading(AngleUnit.RADIANS);
-        odo.setPosition(new Pose2D(
-                DistanceUnit.MM, 0, 0,
-                AngleUnit.RADIANS, moveStartHeadingRad
-        ));
+        updatePose();
+        moveStartX = pinX;
+        moveStartY = pinY;
+        moveStartHeadingRad = Math.toRadians(heading);
         driveDistance  = 0.0;
         strafeDistance = 0.0;
         driveController.reset(0);
@@ -315,10 +355,90 @@ public class SimplifiedOdometryRobot {
         ));
         moveStartHeadingRad = 0;
         yawController.reset(0);
-        heading = 0;
+        updatePose();
     }
 
-    public double getHeading()  { return heading; }
+    public double getHeading()      { return heading; }
+    public double getX()            { return fieldX; }         // inches, + = away from the drivers
+    public double getY()            { return fieldY; }         // inches, + = toward the drivers' left
+    public double getFieldHeading() { return fieldHeading; }   // degrees, 0 = facing away from the drivers
+
+    /** Read the Pinpoint, work out the field position, and save it for TeleOp. */
+    public void updatePose() {
+        odo.update();
+        pinX    = odo.getPosX(DistanceUnit.INCH);
+        pinY    = odo.getPosY(DistanceUnit.INCH);
+        heading = odo.getHeading(AngleUnit.DEGREES);
+
+        double off = Math.toRadians(fieldOffsetDeg);
+        fieldX       = pinX * Math.cos(off) - pinY * Math.sin(off);
+        fieldY       = pinX * Math.sin(off) + pinY * Math.cos(off);
+        fieldHeading = wrapDegrees(heading + fieldOffsetDeg);
+        PoseMemory.save(fieldX, fieldY, fieldHeading);
+    }
+
+    /**
+     * TeleOp start: put back the position the autonomous saved, if it's recent.
+     * Returns a line for the Driver Station saying what happened.
+     */
+    public String continueFromAuto() {
+        continuing = true;
+        fieldOffsetDeg = 0;   // in TeleOp the Pinpoint works in the drivers' frame directly
+
+        if (!PoseMemory.isFresh()) {
+            String why = PoseMemory.saved
+                    ? "the last one ended " + Math.round(PoseMemory.ageSeconds() / 60.0) + " min ago"
+                    : "none has run since the Robot Controller started";
+            updatePose();
+            return "No recent autonomous to continue from (" + why + "). Starting at 0: " +
+                   "the way the robot faces now counts as away from the drivers.";
+        }
+
+        odo.setPosition(new Pose2D(
+                DistanceUnit.INCH, PoseMemory.x, PoseMemory.y,
+                AngleUnit.DEGREES, PoseMemory.headingDeg));
+        moveStartHeadingRad = Math.toRadians(PoseMemory.headingDeg);
+        yawController.reset(PoseMemory.headingDeg);
+        updatePose();
+        return String.format("Continuing from auto: X %.1f in, Y %.1f in, heading %.0f deg.",
+                fieldX, fieldY, fieldHeading);
+    }
+
+    public static double wrapDegrees(double deg) {
+        while (deg > 180)   deg -= 360;
+        while (deg <= -180) deg += 360;
+        return deg;
+    }
+
+    /**
+     * The last known robot position, kept between OpModes. Static fields live until the
+     * Robot Controller app restarts, so a TeleOp can pick up where the autonomous left off.
+     * Saved on every Pinpoint read, so it's right even when the 30-second timer stops an
+     * autonomous in the middle of a move. Drivers' frame, same as getX()/getY().
+     */
+    public static final class PoseMemory {
+        public static final double MAX_AGE_SECONDS = 120.0;   // older than this = don't trust it
+
+        public static boolean saved = false;
+        public static double  x, y, headingDeg;
+        public static long    savedAtNanos;
+
+        public static void save(double newX, double newY, double newHeadingDeg) {
+            x = newX;
+            y = newY;
+            headingDeg = newHeadingDeg;
+            savedAtNanos = System.nanoTime();
+            saved = true;
+        }
+
+        public static double ageSeconds() {
+            return (System.nanoTime() - savedAtNanos) / 1e9;
+        }
+
+        public static boolean isFresh() {
+            return saved && ageSeconds() <= MAX_AGE_SECONDS;
+        }
+    }
     public double getTurnRate() { return turnRate; }
 
     public void showTelemetry(boolean show) {

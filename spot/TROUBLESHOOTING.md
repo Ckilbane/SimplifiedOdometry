@@ -18,6 +18,7 @@ Almost every SPOT problem is a sensor or a motor set up backwards. Work through 
 | Pod directions | `setEncoderDirections(...)` in `SimplifiedOdometryRobot.java`, `PinpointTest.java` **and** `FieldCentricTeleOp.java` | `setEncoderDirections(...)` in `initialize()` |
 | Pod type | `setEncoderResolution(...)`, same three files | `setEncoderResolution(...)` |
 | Pod offsets | `POD_OFFSET_X_MM` / `POD_OFFSET_Y_MM`, same three files | `POD_OFFSET_X_MM` / `POD_OFFSET_Y_MM` |
+| Start heading (auto to TeleOp) | `robot.setStartHeading(...)` in each autonomous, before `initialize()` (`FirstAuto` has it) | Same |
 
 **The mecanum files each set up their own motors and Pinpoint.** If you fix a pod direction in `PinpointTest.java` but not in `SimplifiedOdometryRobot.java`, the test will pass and the autonomous will still run away. Make every change in every file listed.
 
@@ -77,6 +78,16 @@ The StarterBot can't be pushed sideways easily, so check its Y pod by sliding th
 | Two Pinpoint entries in the configuration's I2C device list | Old goBILDA driver files left in OnBot Java | Delete them, rebuild, and pick **goBILDA Pinpoint Odometry Computer** |
 | `Unable to find a hardware device with the name ...` | A configuration name doesn't match, or the wrong configuration is active | Mecanum: `drive_leftfront_motor`, `drive_rightfront_motor`, `drive_leftback_motor`, `drive_rightback_motor`, `odom_pinpoint_sensor`. StarterBot: `left_drive`, `right_drive`, `odo`. |
 | Heading creeps while the robot sits still | The robot moved during INIT while the gyro calibrated | Stop, set the robot down still, and INIT again |
+
+## From auto to TeleOp
+
+| What you see | Most likely cause | Fix |
+|---|---|---|
+| In TeleOp, stick forward drives sideways or toward the drivers | The auto didn't call `setStartHeading()`, or used the wrong value | Add it before `initialize()` in the auto. For now, point the robot away from the drivers and press Y. |
+| TeleOp telemetry says *No recent auto* | More than 2 minutes since the auto, the Robot Controller app restarted, or the auto didn't use `SimplifiedOdometryRobot` | Expected in practice. In a match, start TeleOp right after auto. |
+| Your own TeleOp ignores the auto's position | It calls `initialize(showTelemetry)` | Call `initialize(showTelemetry, true)` |
+| Field centric is right at first, then slowly skews | Heading drift, or a hard bump | Point the robot away from the drivers and press Y |
+| `getX()` / `getY()` are way off at the start of TeleOp | The robot was moved by hand after the auto | Run the auto again, or press Y to re-aim and ignore X/Y |
 
 ## Pinpoint status codes
 

@@ -9,6 +9,11 @@
  *   Right Stick X   Rotate (right = clockwise)
  *   Left Bumper     Hold for slow/precision mode
  *   Y Button        Zero heading. Point the robot away from you first.
+ *
+ * Continues from auto: if an autonomous using SimplifiedOdometryRobot ran in the last
+ * 2 minutes, this TeleOp starts from where the autonomous left the robot, so "away from
+ * the driver" is right even if auto ended with the robot turned. If the robot didn't start
+ * auto facing away from the drivers, call robot.setStartHeading() in the autonomous.
  */
 
 package org.firstinspires.ftc.teamcode;
@@ -74,6 +79,23 @@ public class FieldCentricTeleOp extends LinearOpMode {
         // Zero the position and recalibrate the Pinpoint's IMU.
         // The robot MUST be sitting still for this (about a quarter second).
         odo.resetPosAndIMU();
+        sleep(300);   // let the gyro finish calibrating
+
+        // --- Continue from auto ---
+        // Put back the position the autonomous saved, if it's recent.
+        String startedFrom;
+        if (SimplifiedOdometryRobot.PoseMemory.isFresh()) {
+            odo.setPosition(new Pose2D(
+                    DistanceUnit.INCH,
+                    SimplifiedOdometryRobot.PoseMemory.x,
+                    SimplifiedOdometryRobot.PoseMemory.y,
+                    AngleUnit.DEGREES,
+                    SimplifiedOdometryRobot.PoseMemory.headingDeg));
+            startedFrom = String.format("Continuing from auto (heading %.0f deg)",
+                    SimplifiedOdometryRobot.PoseMemory.headingDeg);
+        } else {
+            startedFrom = "No recent auto. Robot's current facing = away from driver.";
+        }
 
         // --- Bulk caching for faster hub reads ---
         List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
@@ -82,6 +104,7 @@ public class FieldCentricTeleOp extends LinearOpMode {
         }
 
         telemetry.addData("Status",   "Initialized. Press START.");
+        telemetry.addData("Start",    startedFrom);
         telemetry.addData("Pinpoint", odo.getDeviceStatus());
         telemetry.update();
 
@@ -94,6 +117,11 @@ public class FieldCentricTeleOp extends LinearOpMode {
 
             // Heading in radians, counter-clockwise positive.
             double botHeading = odo.getHeading(AngleUnit.RADIANS);
+
+            // Keep the saved position current, so restarting this TeleOp picks up here.
+            SimplifiedOdometryRobot.PoseMemory.save(
+                    odo.getPosX(DistanceUnit.INCH), odo.getPosY(DistanceUnit.INCH),
+                    odo.getHeading(AngleUnit.DEGREES));
 
             // --- Heading reset ---
             // Pressing Y makes the robot's current facing the new "away from driver".
@@ -160,6 +188,7 @@ public class FieldCentricTeleOp extends LinearOpMode {
             telemetry.addData("Pos X:Y (in)",   "%.2f  %.2f", odo.getPosX(DistanceUnit.INCH), odo.getPosY(DistanceUnit.INCH));
             telemetry.addData("Loop Hz",        "%.0f",       odo.getFrequency());
             telemetry.addData("Status",         odo.getDeviceStatus());
+            telemetry.addData("Start",          startedFrom);
             telemetry.addLine("");
             telemetry.addLine("=== Drive ===");
             telemetry.addData("Powers lF:rF",   "%.2f  %.2f", lF, rF);

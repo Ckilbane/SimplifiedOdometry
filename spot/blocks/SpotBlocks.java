@@ -17,6 +17,13 @@
  *     5. reset heading
  *     6. drive / strafe / turn to  (each one finishes before the next block runs)
  *
+ * AUTO TO TELEOP
+ *   SPOT remembers where the robot is every time it reads the Pinpoint. A TeleOp that
+ *   uses "init robot (continue from auto)" picks up right where the autonomous left off,
+ *   so "field centric drive" knows which way is away from the drivers. Add
+ *   "set start heading" to an autonomous if the robot doesn't start facing away from
+ *   the drivers.
+ *
  * WHERE IT COMES FROM
  *   The motion code is Phil Malone's SimplifiedOdometryRobot (2023), converted to the
  *   goBILDA Pinpoint. drive() and strafe() measure distance along the robot's own axes,
@@ -146,6 +153,24 @@ public class SpotBlocks extends BlocksOpModeCompanion {
     }
 
     @ExportToBlocks(
+        heading = "set start heading",
+        color = SETUP_COLOR,
+        comment = "Autonomous only. Which way the robot faces at the start, in degrees, measured " +
+                  "from straight away from the drivers: 0 = facing away from the drivers, " +
+                  "90 = facing the drivers' left, -90 = facing their right, 180 = facing the " +
+                  "drivers. TeleOp uses it to know which way is away from the drivers. Turn to " +
+                  "blocks don't change: turn to 0 still means the way the robot started. " +
+                  "Put it before init robot. TeleOp programs ignore it.",
+        tooltip = "Which way the robot faces at the start of auto",
+        parameterLabels = {"Start heading (deg)"}
+    )
+    public static void setStartHeading(double startHeadingDegrees) {
+        Settings s = settings();
+        s.startHeadingDeg = startHeadingDegrees;
+        applyToLiveRobot(s);
+    }
+
+    @ExportToBlocks(
         heading = "init robot",
         color = SETUP_COLOR,
         comment = "Connects to the motors and Pinpoint and sends the Pinpoint its settings. " +
@@ -164,6 +189,30 @@ public class SpotBlocks extends BlocksOpModeCompanion {
         linearOpMode.sleep(300);
     }
 
+    @ExportToBlocks(
+        heading = "init robot (continue from auto)",
+        color = SETUP_COLOR,
+        comment = "Use this in TeleOp in place of init robot. If an autonomous ran in the last " +
+                  "2 minutes, the robot starts from where the autonomous left it, and heading 0 " +
+                  "means facing away from the drivers. If not, it starts at 0 and the way the " +
+                  "robot faces now counts as away from the drivers. The Driver Station says which " +
+                  "one happened. The robot MUST be sitting still.",
+        tooltip = "Set up the robot and continue from the last autonomous",
+        parameterLabels = {"Show telemetry"}
+    )
+    public static void initRobotContinueFromAuto(boolean showTelemetry) {
+        robot = new Robot(linearOpMode, settings(), showTelemetry);
+        robotOwner = linearOpMode;
+        pending = new Settings();
+        pendingOwner = null;
+
+        // Let the gyro finish calibrating before putting the saved position back.
+        linearOpMode.sleep(300);
+        String result = robot.continueFromAuto();
+        linearOpMode.telemetry.addLine(result);
+        linearOpMode.telemetry.update();
+    }
+
     // ===================================================================================
     //  MOTION BLOCKS (use these after waitForStart)
     //  Each block finishes its move before the next block runs.
@@ -172,8 +221,10 @@ public class SpotBlocks extends BlocksOpModeCompanion {
     @ExportToBlocks(
         heading = "reset heading",
         color = MOVE_COLOR,
-        comment = "Makes the way the robot is facing right now count as heading 0. " +
-                  "Put it right after waitForStart. Turn to blocks measure from here.",
+        comment = "Makes the way the robot is facing right now count as heading 0. In an " +
+                  "autonomous, put it right after waitForStart: turn to blocks measure from here. " +
+                  "In TeleOp, put it on a button so the driver can point the robot away from the " +
+                  "drivers and press it to re-aim field centric drive.",
         tooltip = "Current direction becomes heading 0"
     )
     public static void resetHeading() {
@@ -241,6 +292,45 @@ public class SpotBlocks extends BlocksOpModeCompanion {
     )
     public static double heading() {
         return robot().heading;
+    }
+
+    @ExportToBlocks(
+        heading = "field centric drive",
+        color = MOVE_COLOR,
+        comment = "For TeleOp. Plug the gamepad sticks straight in: no minus signs needed. " +
+                  "Pushing the left stick forward drives away from the drivers, whichever way " +
+                  "the robot faces. Right stick turns. Power scale is the top speed, 0 to 1 " +
+                  "(try 1 normally, 0.4 for a slow mode). Call it every time through the loop.",
+        tooltip = "Drive with the sticks, relative to the field",
+        parameterLabels = {"Left stick Y", "Left stick X", "Right stick X", "Power scale"}
+    )
+    public static void fieldCentricDrive(double leftStickY, double leftStickX,
+                                         double rightStickX, double powerScale) {
+        robot().fieldCentricDrive(leftStickY, leftStickX, rightStickX, powerScale);
+    }
+
+    @ExportToBlocks(
+        heading = "robot X",
+        color = MOVE_COLOR,
+        comment = "Where the robot is, in inches along the field: + = away from the drivers. " +
+                  "Measured from where init robot ran (or from where the autonomous started, " +
+                  "in a TeleOp that continues from auto). Without set start heading, " +
+                  "+ = the way the robot faced at the start.",
+        tooltip = "Robot position in inches, away from the drivers"
+    )
+    public static double robotX() {
+        return robot().fieldX;
+    }
+
+    @ExportToBlocks(
+        heading = "robot Y",
+        color = MOVE_COLOR,
+        comment = "Where the robot is, in inches across the field: + = toward the drivers' left. " +
+                  "Measured from the same starting point as robot X.",
+        tooltip = "Robot position in inches, toward the drivers' left"
+    )
+    public static double robotY() {
+        return robot().fieldY;
     }
 
     // ===================================================================================
@@ -383,6 +473,40 @@ public class SpotBlocks extends BlocksOpModeCompanion {
         double  driveGain  = 0.03;
         double  strafeGain = 0.03;
         double  turnGain   = 0.018;
+
+        double  startHeadingDeg = 0.0;   // auto only: which way the robot faces at the start
+    }
+
+    // ===================================================================================
+    //  PoseMemory: the last known robot position, kept between programs.
+    //  Static fields live until the Robot Controller app restarts, so a TeleOp can pick up
+    //  where the autonomous left off. Saved every time SPOT reads the Pinpoint, so it's
+    //  right even when the 30-second timer stops an autonomous in the middle of a move.
+    //  Position is in the drivers' frame: X = away from the drivers, Y = toward their
+    //  left, heading 0 = facing away from the drivers.
+    // ===================================================================================
+    static final class PoseMemory {
+        static final double MAX_AGE_SECONDS = 120.0;   // older than this = don't trust it
+
+        static boolean saved = false;
+        static double  x, y, headingDeg;
+        static long    savedAtNanos;
+
+        static void save(double newX, double newY, double newHeadingDeg) {
+            x = newX;
+            y = newY;
+            headingDeg = newHeadingDeg;
+            savedAtNanos = System.nanoTime();
+            saved = true;
+        }
+
+        static double ageSeconds() {
+            return (System.nanoTime() - savedAtNanos) / 1e9;
+        }
+
+        static boolean isFresh() {
+            return saved && ageSeconds() <= MAX_AGE_SECONDS;
+        }
     }
 
     // ===================================================================================
@@ -431,6 +555,22 @@ public class SpotBlocks extends BlocksOpModeCompanion {
 
         private double turnRate            = 0;
         private double moveStartHeadingRad = 0;  // heading when the current drive/strafe began
+        private double moveStartX          = 0;  // Pinpoint position when the current move began
+        private double moveStartY          = 0;
+
+        // Where the robot is in the drivers' frame (see PoseMemory).
+        double fieldX       = 0;
+        double fieldY       = 0;
+        double fieldHeading = 0;
+
+        // Raw Pinpoint position, in the frame set up by init robot.
+        private double pinX = 0;
+        private double pinY = 0;
+
+        // Turns the Pinpoint's frame into the drivers' frame. It's the start heading in an
+        // autonomous, and 0 in a TeleOp that continues from auto.
+        private double fieldOffsetDeg = 0;
+        private boolean continuing    = false;
 
         Robot(LinearOpMode opMode, Settings s, boolean showTelemetry) {
             myOpMode = opMode;
@@ -463,6 +603,7 @@ public class SpotBlocks extends BlocksOpModeCompanion {
             // The robot MUST be sitting still for this.
             odo.resetPosAndIMU();
             moveStartHeadingRad = 0;
+            fieldOffsetDeg = s.startHeadingDeg;
 
             List<LynxModule> allHubs = myOpMode.hardwareMap.getAll(LynxModule.class);
             for (LynxModule module : allHubs) {
@@ -484,20 +625,20 @@ public class SpotBlocks extends BlocksOpModeCompanion {
          * Always returns true so it can sit inside a while() condition.
          */
         boolean readSensors() {
-            odo.update();
+            updatePose();
 
             // The Pinpoint tracks position on the FIELD. drive() and strafe() need distance
-            // along the robot's OWN axes, so turn the field position into "how far forward"
-            // and "how far left" relative to the heading the robot had when this move started.
-            double fieldX = odo.getPosX(DistanceUnit.INCH);
-            double fieldY = odo.getPosY(DistanceUnit.INCH);
-            double cosH   = Math.cos(moveStartHeadingRad);
-            double sinH   = Math.sin(moveStartHeadingRad);
+            // along the robot's OWN axes, so take how far the robot has moved since this move
+            // started and turn it into "how far forward" and "how far left", using the
+            // heading the robot had when the move started.
+            double dx   = pinX - moveStartX;
+            double dy   = pinY - moveStartY;
+            double cosH = Math.cos(moveStartHeadingRad);
+            double sinH = Math.sin(moveStartHeadingRad);
 
-            driveDistance  =  fieldX * cosH + fieldY * sinH;
-            strafeDistance = -fieldX * sinH + fieldY * cosH;
+            driveDistance  =  dx * cosH + dy * sinH;
+            strafeDistance = -dx * sinH + dy * cosH;
 
-            heading  = odo.getHeading(AngleUnit.DEGREES);
             turnRate = odo.getHeadingVelocity(UnnormalizedAngleUnit.DEGREES);
 
             if (showTelemetry) {
@@ -506,6 +647,71 @@ public class SpotBlocks extends BlocksOpModeCompanion {
                 myOpMode.telemetry.addData("Pinpoint Status",  odo.getDeviceStatus());
             }
             return true;
+        }
+
+        /** Read the Pinpoint, work out the field position, and save it for TeleOp. */
+        void updatePose() {
+            odo.update();
+            pinX    = odo.getPosX(DistanceUnit.INCH);
+            pinY    = odo.getPosY(DistanceUnit.INCH);
+            heading = odo.getHeading(AngleUnit.DEGREES);
+
+            double off = Math.toRadians(fieldOffsetDeg);
+            fieldX       = pinX * Math.cos(off) - pinY * Math.sin(off);
+            fieldY       = pinX * Math.sin(off) + pinY * Math.cos(off);
+            fieldHeading = wrapDegrees(heading + fieldOffsetDeg);
+            PoseMemory.save(fieldX, fieldY, fieldHeading);
+        }
+
+        /**
+         * TeleOp start: put back the position the autonomous saved, if it's recent.
+         * Returns a line for the Driver Station saying what happened.
+         */
+        String continueFromAuto() {
+            continuing = true;
+            fieldOffsetDeg = 0;   // in TeleOp the Pinpoint works in the drivers' frame directly
+
+            if (!PoseMemory.isFresh()) {
+                String why = PoseMemory.saved
+                        ? "the last one ended " + Math.round(PoseMemory.ageSeconds() / 60.0) + " min ago"
+                        : "none has run since the Robot Controller started";
+                updatePose();
+                return "No recent autonomous to continue from (" + why + "). Starting at 0: " +
+                       "the way the robot faces now counts as away from the drivers.";
+            }
+
+            odo.setPosition(new Pose2D(
+                    DistanceUnit.INCH, PoseMemory.x, PoseMemory.y,
+                    AngleUnit.DEGREES, PoseMemory.headingDeg));
+            moveStartHeadingRad = Math.toRadians(PoseMemory.headingDeg);
+            yawController.reset(PoseMemory.headingDeg);
+            updatePose();
+            return String.format("Continuing from auto: X %.1f in, Y %.1f in, heading %.0f deg.",
+                    fieldX, fieldY, fieldHeading);
+        }
+
+        /**
+         * Field centric driving. Stick values go in exactly as the gamepad gives them
+         * (stick forward = negative Y), so students don't have to remember the minus signs.
+         */
+        void fieldCentricDrive(double leftStickY, double leftStickX, double rightStickX, double powerScale) {
+            updatePose();
+
+            double forward = deadband(-leftStickY);   // + = away from the drivers
+            double left    = deadband(-leftStickX);   // + = toward the drivers' left
+            double turn    = deadband(-rightStickX);  // + = counter-clockwise
+
+            // Turn the field direction into the robot's own forward and left.
+            double h = Math.toRadians(fieldHeading);
+            double robotForward =  forward * Math.cos(h) + left * Math.sin(h);
+            double robotLeft    = -forward * Math.sin(h) + left * Math.cos(h);
+
+            double scale = Range.clip(powerScale, 0.0, 1.0);
+            moveRobot(robotForward * scale, robotLeft * scale, turn * scale);
+        }
+
+        private double deadband(double value) {
+            return Math.abs(value) < STICK_DEADBAND ? 0.0 : value;
         }
 
         void drive(double distanceInches, double power, double holdTime) {
@@ -606,6 +812,7 @@ public class SpotBlocks extends BlocksOpModeCompanion {
         private static final double STALL_SECONDS      = 0.75;   // pushing this long with no progress = stalled
         private static final double PROGRESS_IN        = 0.5;   // how much closer counts as progress
         private static final double PROGRESS_DEG       = 1.0;
+        private static final double STICK_DEADBAND     = 0.05;  // ignore tiny stick drift
 
         class MoveGuard {
             private final Axis axis;
@@ -747,16 +954,14 @@ public class SpotBlocks extends BlocksOpModeCompanion {
         }
 
         /**
-         * Zero the X/Y position for a new move and remember which way the robot faces now.
-         * Uses setPosition() instead of resetPosAndIMU(), so it is safe while moving.
+         * Start a new move from where the robot is now: remember its position and which way
+         * it faces. The Pinpoint keeps its field position, so nothing is lost between moves.
          */
         void resetOdometry() {
-            odo.update();
-            moveStartHeadingRad = odo.getHeading(AngleUnit.RADIANS);
-            odo.setPosition(new Pose2D(
-                    DistanceUnit.MM, 0, 0,
-                    AngleUnit.RADIANS, moveStartHeadingRad
-            ));
+            updatePose();
+            moveStartX = pinX;
+            moveStartY = pinY;
+            moveStartHeadingRad = Math.toRadians(heading);
             driveDistance  = 0.0;
             strafeDistance = 0.0;
             driveController.reset(0);
@@ -772,7 +977,7 @@ public class SpotBlocks extends BlocksOpModeCompanion {
             ));
             moveStartHeadingRad = 0;
             yawController.reset(0);
-            heading = 0;
+            updatePose();
         }
 
         /** Send changed directions and pod settings to hardware that is already set up. */
@@ -792,14 +997,16 @@ public class SpotBlocks extends BlocksOpModeCompanion {
                     s.yPodReversed ? GoBildaPinpointDriver.EncoderDirection.REVERSED
                                    : GoBildaPinpointDriver.EncoderDirection.FORWARD
             );
+            if (!continuing) {
+                fieldOffsetDeg = s.startHeadingDeg;   // TeleOp ignores the start heading
+            }
         }
 
         /** Show the Pinpoint's raw field position. Used by the Pinpoint Check program. */
         void showPinpoint() {
-            odo.update();
-            heading = odo.getHeading(AngleUnit.DEGREES);
-            myOpMode.telemetry.addData("X (in)  forward = up", "%6.2f", odo.getPosX(DistanceUnit.INCH));
-            myOpMode.telemetry.addData("Y (in)  left = up",    "%6.2f", odo.getPosY(DistanceUnit.INCH));
+            updatePose();
+            myOpMode.telemetry.addData("X (in)  forward = up", "%6.2f", pinX);
+            myOpMode.telemetry.addData("Y (in)  left = up",    "%6.2f", pinY);
             myOpMode.telemetry.addData("Heading (deg)  left = up", "%6.1f", heading);
             myOpMode.telemetry.addData("Pinpoint status", odo.getDeviceStatus());
             myOpMode.telemetry.update();
